@@ -392,8 +392,8 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
       {
          //mMultiqueue.reset(new kurento::GStreamerFilter(mKurentoConversationManager.mPipeline, "videoconvert"));
          //mMultiqueue.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
-         mPlayer.reset(new kurento::PlayerEndpoint(mKurentoConversationManager.mPipeline, "file:///tmp/test.mp4"));
-         mPassThrough.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
+//         mPlayer.reset(new kurento::PlayerEndpoint(mKurentoConversationManager.mPipeline, "file:///tmp/test.mp4"));
+//         mPassThrough.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
          mEndpoint->create([this, elError, elEventDebug, elEventKeyframeRequired, cConnected]{
             //mEndpoint->addErrorListener(elError, [this](){});
             //mEndpoint->addConnectionStateChangedListener(elEventDebug, [this](){});
@@ -402,24 +402,33 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             //mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [this](){});
             //mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [this, cConnected](){
+
+
+                mEndpoint->connect([this, cConnected]{
+
+                        //mPlayer->play([this, cConnected]{
+                        cConnected();
+                        //mPlayer->connect(cConnected, *mEndpoint); // connect
+                        //});
+                    }, *mEndpoint);
                //mMultiqueue->create([this, cConnected]{
                   // mMultiqueue->connect([this, cConnected]{
                      // Note: FIXME this will be done later in the call to
                      //       waitingMode() as that method knows whether
                      //       to do loopback, a PlayerEndpoint or something else
                      //mEndpoint->connect([this, cConnected]{
-                        mPlayer->create([this, cConnected]{
-                           mPassThrough->create([this, cConnected]{
-                              mEndpoint->connect([this, cConnected]{
-                                 mPassThrough->connect([this, cConnected]{
-                                    //mPlayer->play([this, cConnected]{
-                                       cConnected();
-                                       //mPlayer->connect(cConnected, *mEndpoint); // connect
-                                    //});
-                                 }, *mEndpoint);
-                              }, *mPassThrough);
-                           });
-                        });
+//                        mPlayer->create([this, cConnected]{
+//                           mPassThrough->create([this, cConnected]{
+//                              mEndpoint->connect([this, cConnected]{
+//                                 mPassThrough->connect([this, cConnected]{
+//                                    //mPlayer->play([this, cConnected]{
+//                                       cConnected();
+//                                       //mPlayer->connect(cConnected, *mEndpoint); // connect
+//                                    //});
+//                                 }, *mEndpoint);
+//                              }, *mPassThrough);
+//                           });
+//                        });
                      //}, *mEndpoint); // mEndpoint->connect
                   // }, *mEndpoint); // mMultiqueue->connect
                //}); // mMultiqueue->create
@@ -493,7 +502,7 @@ KurentoRemoteParticipant::waitingMode()
       }
       else
       {
-         mEndpoint->connect([this]{}, *mPassThrough); // FIXME Kurento async
+//         mEndpoint->connect([this]{}, *mPassThrough); // FIXME Kurento async
       }
       requestKeyframeFromPeer();
    }, *mEndpoint);
@@ -508,7 +517,8 @@ KurentoRemoteParticipant::getWaitingModeElement()
    }
    else
    {
-      return mPassThrough;
+//      return mPassThrough;
+        return mEndpoint;
    }
 }
 

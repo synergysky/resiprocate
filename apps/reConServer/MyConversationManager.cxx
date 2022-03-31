@@ -250,7 +250,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
       ErrLog(<<"our endpoint is not initialized"); // FIXME
       return;
    }
-   _p->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, conversation]{
+//   _p->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, conversation]{
       // Find the other Participant / endpoint
 
       Conversation::ParticipantMap& m = conversation->getParticipants();
@@ -266,7 +266,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
       }
       resip_assert(krp);
       std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
-      krp->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, otherEndpoint, krp]{
+//      krp->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, otherEndpoint, krp]{
          otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
             answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
@@ -279,8 +279,8 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 
             }, *otherEndpoint);
          }, *answeredEndpoint);
-      }); // otherEndpoint->disconnect()
-   });  // answeredEndpoint->disconnect()
+//      }); // otherEndpoint->disconnect()
+//   });  // answeredEndpoint->disconnect()
 }
 
 void
@@ -308,18 +308,22 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
          }
          if(krp)
          {
-            std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
-            otherEndpoint->disconnect([this, krp]{
+             DebugLog(<<"SK2307: Inside krp if statement");
+             std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
+            otherEndpoint->disconnect([this, krp, &otherEndpoint]{
                krp->waitingMode();
+                otherEndpoint->release([this, otherEndpoint]{
+                    DebugLog(<<"release completed for myEndpoint: " << otherEndpoint->getName());
+                });
             });
          }
          else
          {
-            /*myEndpoint->release([this]{
-               DebugLog(<<"release completed");
-            });*/
+             DebugLog(<<"SK2307: Inside krp else statement");
+            myEndpoint->release([this, myEndpoint]{
+               DebugLog(<<"release completed for myEndpoint: " << myEndpoint->getName());
+            });
          }
-
          return;
       }
 
