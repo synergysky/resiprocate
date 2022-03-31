@@ -54,8 +54,17 @@ MyConversationManager::FastUpdateRequestWorkerLoop()
         {
             if (n->IsFurDue()) // Added true to always trigger to spam
             {
-                sendFastUpdateRequest(n->Handler);
-                std::cout << "executing sendFastUpdateRequest( " << n->Handler << " );" << std::endl;
+                RemoteParticipant* remoteParticipant = dynamic_cast<RemoteParticipant*>(this->getParticipant(n->Handler));
+                if(remoteParticipant)
+                {
+                    remoteParticipant->requestKeyframeFromPeer();
+                }
+                else
+                {
+                    WarningLog(<< "FastUpdateRequestWorkerLoop: invalid remote participant handle.");
+                }
+                //sendFastUpdateRequest(n->Handler);
+                //std::cout << "executing sendFastUpdateRequest( " << n->Handler << " );" << std::endl;
             }
         }
         this->RemoteParticipantFURVectorMutex.unlock();
@@ -271,9 +280,6 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
             answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                //_p->setLocalHold(false); // FIXME - the Conversation does this automatically
-               DebugLog(<<"SynergySKY: Setting Pipeline Setup To Done");
-               otherEndpoint->SetPipelineSetupToDone();
-               answeredEndpoint->SetPipelineSetupToDone();
                _p->requestKeyframeFromPeer();
                krp->requestKeyframeFromPeer();
 
