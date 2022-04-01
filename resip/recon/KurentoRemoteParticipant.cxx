@@ -404,13 +404,13 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [this, cConnected](){
 
 
-                mEndpoint->connect([this, cConnected]{
+//                mEndpoint->connect([this, cConnected]{
 
                         //mPlayer->play([this, cConnected]{
                         cConnected();
                         //mPlayer->connect(cConnected, *mEndpoint); // connect
                         //});
-                    }, *mEndpoint);
+//                    }, *mEndpoint);
                //mMultiqueue->create([this, cConnected]{
                   // mMultiqueue->connect([this, cConnected]{
                      // Note: FIXME this will be done later in the call to

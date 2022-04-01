@@ -278,12 +278,12 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 //      krp->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, otherEndpoint, krp]{
          otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
-//            answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
+            answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                //_p->setLocalHold(false); // FIXME - the Conversation does this automatically
                _p->requestKeyframeFromPeer();
                krp->requestKeyframeFromPeer();
 
-//            }, *otherEndpoint);
+            }, *otherEndpoint);
          }, *answeredEndpoint);
 //      }); // otherEndpoint->disconnect()
 //   });  // answeredEndpoint->disconnect()
