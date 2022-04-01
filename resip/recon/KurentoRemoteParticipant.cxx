@@ -323,7 +323,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
                       m.addCodec(c);
                    }
                 }
-                m.addAttribute("max-recv-ssrc:* 1");
+                //m.addAttribute("max-recv-ssrc:* 1");
                 //m.addAttribute("rtcp-fb", "* nack pli");
                 //m.addAttribute("rtcp-fb", "* ccm fir");
                 //m.addAttribute("rtcp-fb", "* ccm tmmbr");
@@ -331,7 +331,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             else if (m.name() == Data("audio") && !audiobw)
             {
                 //m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 128000));
-                m.addAttribute("max-recv-ssrc:* 1");
+                //m.addAttribute("max-recv-ssrc:* 1");
                 audiobw = true;
             }
             else
@@ -370,7 +370,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
                   mEndpoint->getLocalSessionDescriptor(cOnAnswerReady);
                });
                webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this](){});
-               //webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
+               webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
 
                webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
@@ -395,12 +395,12 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 //         mPlayer.reset(new kurento::PlayerEndpoint(mKurentoConversationManager.mPipeline, "file:///tmp/test.mp4"));
 //         mPassThrough.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
          mEndpoint->create([this, elError, elEventDebug, elEventKeyframeRequired, cConnected]{
-            //mEndpoint->addErrorListener(elError, [this](){});
-            //mEndpoint->addConnectionStateChangedListener(elEventDebug, [this](){});
-            //mEndpoint->addMediaStateChangedListener(elEventDebug, [this](){});
-            //mEndpoint->addMediaTranscodingStateChangeListener(elEventDebug, [this](){});
-            //mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [this](){});
-            //mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
+            mEndpoint->addErrorListener(elError, [this](){});
+            mEndpoint->addConnectionStateChangedListener(elEventDebug, [this](){});
+            mEndpoint->addMediaStateChangedListener(elEventDebug, [this](){});
+            mEndpoint->addMediaTranscodingStateChangeListener(elEventDebug, [this](){});
+            mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [this](){});
+            mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [this, cConnected](){
 
 
