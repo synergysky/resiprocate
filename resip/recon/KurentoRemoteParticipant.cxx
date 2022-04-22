@@ -359,7 +359,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             cOnAnswerReady(*answerStr);
             return;
          }
-         std::this_thread::sleep_for(std::chrono::milliseconds(1000) );
          mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
             if(isWebRTC)
             {
@@ -368,16 +367,14 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
                std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
                      std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
                   mIceGatheringDone = true;
-                  std::this_thread::sleep_for(std::chrono::milliseconds(1000) );
                   mEndpoint->getLocalSessionDescriptor(cOnAnswerReady);
                });
-               webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this](){std::this_thread::sleep_for(std::chrono::milliseconds(1000) );});
-               webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){std::this_thread::sleep_for(std::chrono::milliseconds(1000) );});
+               webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this](){});
+               webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
 
                webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
-                  // on success, we continue from the IceGatheringDone event handler
-                   std::this_thread::sleep_for(std::chrono::milliseconds(1000) );
+                  // on success, we continue from the IceGatheringDone event handle
                }); // gatherCandidates
             }
             else
