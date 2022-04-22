@@ -317,11 +317,18 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
          {
              DebugLog(<<"SK2307: Inside krp if statement");
              std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
-            otherEndpoint->disconnect([this, krp, &otherEndpoint]{
+            otherEndpoint->disconnect([this, krp, &otherEndpoint, &myEndpoint]{
 //               krp->waitingMode();
-                otherEndpoint->release([this, otherEndpoint]{
-                    DebugLog(<<"release completed for myEndpoint: " << otherEndpoint->getName());
+                myEndpoint->disconnect([this, krp, &myEndpoint, &otherEndpoint]{
+                    myEndpoint->release([this, myEndpoint, &otherEndpoint]{
+                        DebugLog(<<"release completed for myEndpoint: " << myEndpoint->getName());
+
+                        otherEndpoint->release([this, otherEndpoint]{
+                            DebugLog(<<"release completed for myEndpoint: " << otherEndpoint->getName());
+                        });
+                    });
                 });
+
             });
          }
          else
