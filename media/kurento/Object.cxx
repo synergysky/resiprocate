@@ -35,6 +35,7 @@ Object::~Object()
 std::string
 Object::makeRpcCallStatic(const std::string& methodName, const json::Object& params, ContinuationInternal c)
 {
+   WarningLog(<<"SynergySKY: makeRpcCallStatic " << methodName );
    std::string reqId = mConnection->sendRequest(
             KurentoResponseHandler::shared_from_this(),
             methodName, params);
@@ -73,7 +74,9 @@ Object::subscribe(const std::string& eventName, ContinuationVoid c)
 void
 Object::release(ContinuationVoid c)
 {
-   invokeVoidMethod("release", c);
+    json::Object params;
+    ContinuationInternal ci = std::bind(&Object::onVoidSuccess, this, c, _1);
+    std::string reqId = makeRpcCall("release", params, ci);
 }
 
 void
