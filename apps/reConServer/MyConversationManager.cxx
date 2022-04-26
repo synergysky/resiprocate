@@ -293,6 +293,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 void
 MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandle)
 {
+   DebugLog(<<"MyConversationManager::onParticipantDestroyedKurento " << std::to_string(partHandle));
    RoomMap::const_iterator it = mRooms.begin();
    for(;it != mRooms.end();it++)
    {
@@ -317,10 +318,10 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
          {
              DebugLog(<<"SK2307: Inside krp if statement");
              std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
-            otherEndpoint->disconnect([this, krp, &otherEndpoint, &myEndpoint]{
+            otherEndpoint->disconnect([this, krp, otherEndpoint, myEndpoint]{
 //               krp->waitingMode();
-                myEndpoint->disconnect([this, krp, &myEndpoint, &otherEndpoint]{
-                    myEndpoint->release([this, myEndpoint, &otherEndpoint]{
+                myEndpoint->disconnect([this, krp, myEndpoint, otherEndpoint]{
+                    myEndpoint->release([this, myEndpoint, otherEndpoint]{
                         DebugLog(<<"release completed for myEndpoint: " << myEndpoint->getName());
 
                         otherEndpoint->release([this, otherEndpoint]{
@@ -333,7 +334,7 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
          }
          else
          {
-             myEndpoint->disconnect([this, krp, &myEndpoint]{
+             myEndpoint->disconnect([this, krp, myEndpoint]{
                  DebugLog(<<"SK2307: Inside krp else statement");
                  myEndpoint->release([this, myEndpoint]{
                      DebugLog(<<"release completed for myEndpoint: " << myEndpoint->getName());
