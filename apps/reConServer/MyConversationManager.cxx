@@ -179,9 +179,9 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
             answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                //_p->setLocalHold(false); // FIXME - the Conversation does this automatically
-               DebugLog(<<"SynergySKY: Setting Pipeline Setup To Done");
-               otherEndpoint->SetPipelineSetupToDone();
-               answeredEndpoint->SetPipelineSetupToDone();
+               //DebugLog(<<"SynergySKY: Setting Pipeline Setup To Done");
+               //otherEndpoint->SetPipelineSetupToDone();
+               //answeredEndpoint->SetPipelineSetupToDone();
                _p->requestKeyframeFromPeer();
                krp->requestKeyframeFromPeer();
 
