@@ -10,9 +10,11 @@
 #include <rutil/Logger.hxx>
 #include <AppSubsystem.hxx>
 
-#include <media/kurento/Object.hxx>  // FIXME Kurento includes
-#include <resip/recon/Conversation.hxx> // FIXME Kurento includes
-#include <resip/recon/KurentoRemoteParticipant.hxx> // FIXME Kurento includes
+#include <resip/recon/LocalParticipant.hxx>
+#include <resip/recon/RemoteParticipant.hxx>
+#include <media/kurento/Object.hxx>
+#include <resip/recon/Conversation.hxx>
+#include <resip/recon/KurentoRemoteParticipant.hxx>
 
 // Test Prompts for cache testing
 #include "playback_prompt.h"
@@ -20,58 +22,35 @@
 
 #define RESIPROCATE_SUBSYSTEM AppSubsystem::RECONSERVER
 
-#include <chrono>
+using namespace std;
 
 using namespace resip;
 using namespace recon;
 using namespace reconserver;
 
-#ifdef USE_KURENTO
-// FIXME: see comments in MyConversationManager.hxx
-MyConversationManager::MyConversationManager(const ReConServerConfig& config, const Data& kurentoUri, bool autoAnswerEnabled)
-      : KurentoConversationManager(kurentoUri),
+MyConversationManager::MyConversationManager(const ReConServerConfig& config, const Data& kurentoUri, bool localAudioEnabled, recon::SipXConversationManager::MediaInterfaceMode mediaInterfaceMode, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled)
+      : ConversationManager(nullptr),
         mConfig(config),
-
-#else
-MyConversationManager::MyConversationManager(bool localAudioEnabled, recon::SipXConversationManager::MediaInterfaceMode mediaInterfaceMode, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled)
-      : SipXConversationManager(localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false),
-#endif
         mAutoAnswerEnabled(autoAnswerEnabled)
-{
-     this->FastUpdateRequestThread = std::make_shared<std::thread>([this] {
-         this->FastUpdateRequestWorkerLoop();
-     } );
-}
-
-void
-MyConversationManager::FastUpdateRequestWorkerLoop()
-{
-    // DEBUG; for test we are checking all the time, and pushing FUR aggressively
-    while (!this->isShuttingDown())
-    {
-        this->RemoteParticipantFURVectorMutex.lock();
-        for (auto &n : this->RemoteParticipantFURVector)
-        {
-            if (n->IsFurDue()) // Added true to always trigger to spam
-            {
-                sendFastUpdateRequest(n->Handler);
-                std::cout << "executing sendFastUpdateRequest( " << n->Handler << " );" << std::endl;
-            }
-        }
-        this->RemoteParticipantFURVectorMutex.unlock();
-        std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) ); // WAS 1000
-    }
+{ 
+#ifdef PREFER_KURENTO
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<KurentoConversationManager>(*this, kurentoUri);
+#else
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<SipXConversationManager>(*this, localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false);
+#endif
+   setMediaStackAdapter(mediaStackAdapter);
 }
 
 void
 MyConversationManager::startup()
 {      
-   if(supportsLocalAudio())
+   if(getMediaStackAdapter().supportsLocalAudio())
    {
       // Create initial local participant and conversation  
-      addParticipant(createConversation(), createLocalParticipant());
+      ConversationHandle initialConversation = createConversation();
+      addParticipant(initialConversation, createLocalParticipant());
       resip::Uri uri("tone:dialtone;duration=1000");
-      createMediaResourceParticipant(mConversationHandles.front(), uri);
+      createMediaResourceParticipant(initialConversation, uri);
    }
    else
    {
@@ -94,69 +73,16 @@ MyConversationManager::startup()
    }      
 }
 
-ConversationHandle
-MyConversationManager::createConversation(AutoHoldMode autoHoldMode)
-{
-   ConversationHandle convHandle = ConversationManager::createConversation(autoHoldMode);
-   mConversationHandles.push_back(convHandle);
-   return convHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createRemoteParticipant(ConversationHandle convHandle, const NameAddr& destination, ParticipantForkSelectMode forkSelectMode, const std::shared_ptr<ConversationProfile>& conversationProfile, const std::multimap<resip::Data, resip::Data>& extraHeaders)
-{
-   ParticipantHandle partHandle = ConversationManager::createRemoteParticipant(convHandle, destination, forkSelectMode, conversationProfile, extraHeaders);
-   mRemoteParticipantHandles.push_back(partHandle);
-   return partHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createMediaResourceParticipant(ConversationHandle convHandle, const Uri& mediaUrl)
-{
-   ParticipantHandle partHandle = ConversationManager::createMediaResourceParticipant(convHandle, mediaUrl);
-   mMediaParticipantHandles.push_back(partHandle);
-   return partHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createLocalParticipant()
-{
-   ParticipantHandle partHandle = ConversationManager::createLocalParticipant();
-   mLocalParticipantHandles.push_back(partHandle);
-   return partHandle;
-}
-
 void
 MyConversationManager::onConversationDestroyed(ConversationHandle convHandle)
 {
    InfoLog(<< "onConversationDestroyed: handle=" << convHandle);
-   mConversationHandles.remove(convHandle);
 }
 
 void
 MyConversationManager::onParticipantDestroyed(ParticipantHandle partHandle)
 {
    InfoLog(<< "onParticipantDestroyed: handle=" << partHandle);
-   // FIXME - why is this duplicated here, why not call superclass?
-   // Remove from whatever list it is in
-
-   this->RemoteParticipantFURVectorMutex.lock();
-   std::vector<std::shared_ptr<RemoteParticipantFurTrackerStruct>>::iterator it;
-   bool found = false;
-   for(it = RemoteParticipantFURVector.begin(); it != RemoteParticipantFURVector.end(); it++)
-   {
-       if ( (*it)->Handler == partHandle)
-        {
-           found = true;
-           break;
-       }
-   }
-   if (found)
-       RemoteParticipantFURVector.erase(it);
-   this->RemoteParticipantFURVectorMutex.unlock();
-   mRemoteParticipantHandles.remove(partHandle);
-   mLocalParticipantHandles.remove(partHandle);
-   mMediaParticipantHandles.remove(partHandle);
 }
 
 void
@@ -169,7 +95,6 @@ void
 MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage& msg, bool autoAnswer, ConversationProfile& conversationProfile)
 {
    InfoLog(<< "onIncomingParticipant: handle=" << partHandle << "auto=" << autoAnswer << " msg=" << msg.brief());
-   mRemoteParticipantHandles.push_back(partHandle);
    if(mAutoAnswerEnabled)
    {
       const resip::Data& room = msg.header(h_RequestLine).uri().user();
@@ -180,7 +105,7 @@ MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const
          ConversationHandle convHandle = createConversation();
          mRooms[room] = convHandle;
          // ensure a local participant is in the conversation - create one if one doesn't exist
-         if(supportsLocalAudio() && mLocalParticipantHandles.empty())
+         if(getMediaStackAdapter().supportsLocalAudio() && getParticipantsByType<LocalParticipant>().empty())
          {
             createLocalParticipant();
          }
@@ -195,27 +120,10 @@ MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const
          answerParticipant(partHandle);
       }
    }
-   std::shared_ptr<RemoteParticipantFurTrackerStruct> newremote = std::make_shared<RemoteParticipantFurTrackerStruct>(partHandle);
-   this->RemoteParticipantFURVectorMutex.lock();
-
-    // Skip WebRTC
-    RemoteParticipant* remoteParticipant = dynamic_cast<RemoteParticipant*>(this->getParticipant(partHandle));
-    if(remoteParticipant)
-    {
-        if (!remoteParticipant->getInviteSessionHandle()->getProposedRemoteSdp().session().isWebRTC())
-        {
-            this->RemoteParticipantFURVector.push_back(newremote);
-        }
-    }
-    else
-    {
-        WarningLog(<<"Problem adding participant handler to RemoteParticipantFURVector: " << newremote);
-    }
-
-    // ignore if webrtc
 
 
-   this->RemoteParticipantFURVectorMutex.unlock();
+
+
 }
 
 void
@@ -358,8 +266,6 @@ MyConversationManager::onRelatedConversation(ConversationHandle relatedConvHandl
 {
    InfoLog(<< "onRelatedConversation: relatedConvHandle=" << relatedConvHandle << " relatedPartHandle=" << relatedPartHandle
            << " origConvHandle=" << origConvHandle << " origPartHandle=" << origPartHandle);
-   mConversationHandles.push_back(relatedConvHandle);
-   mRemoteParticipantHandles.push_back(relatedPartHandle);
 }
 
 void
@@ -401,12 +307,18 @@ MyConversationManager::onParticipantRequestedHold(ParticipantHandle partHandle, 
 }
 
 void
-MyConversationManager::configureRemoteParticipant(KurentoRemoteParticipant *rp)
+MyConversationManager::onRemoteParticipantConstructed(RemoteParticipant *rp)
 {
-   rp->mRemoveExtraMediaDescriptors = mConfig.getConfigBool("KurentoRemoveExtraMediaDescriptors", false);
-   rp->mSipRtpEndpoint = mConfig.getConfigBool("KurentoSipRtpEndpoint", true);
-   rp->mReuseSdpAnswer = mConfig.getConfigBool("KurentoReuseSdpAnswer", false);
-   rp->mWSAcceptsKeyframeRequests = mConfig.getConfigBool("KurentoWebSocketAcceptsKeyframeRequests", true);
+#ifdef USE_KURENTO
+   KurentoRemoteParticipant* krp = dynamic_cast<KurentoRemoteParticipant*>(rp);
+   if(krp)
+   {
+      krp->mRemoveExtraMediaDescriptors = mConfig.getConfigBool("KurentoRemoveExtraMediaDescriptors", false);
+      krp->mSipRtpEndpoint = mConfig.getConfigBool("KurentoSipRtpEndpoint", true);
+      krp->mReuseSdpAnswer = mConfig.getConfigBool("KurentoReuseSdpAnswer", false);
+      krp->mWSAcceptsKeyframeRequests = mConfig.getConfigBool("KurentoWebSocketAcceptsKeyframeRequests", true);
+   }
+#endif
 }
 
 void
@@ -414,41 +326,45 @@ MyConversationManager::displayInfo()
 {
    Data output;
 
-   if(!mConversationHandles.empty())
+   const set<ConversationHandle> conversations = getConversations();
+   if(!conversations.empty())
    {
       output = "Active conversation handles: ";
-      std::list<ConversationHandle>::iterator it;
-      for(it = mConversationHandles.begin(); it != mConversationHandles.end(); it++)
+      set<ConversationHandle>::const_iterator it;
+      for(it = conversations.begin(); it != conversations.end(); it++)
       {
          output += Data(*it) + " ";
       }
       InfoLog(<< output);
    }
-   if(!mLocalParticipantHandles.empty())
+   const set<ParticipantHandle> localParticipantHandles = getParticipantsByType<LocalParticipant>();
+   if(!localParticipantHandles.empty())
    {
       output = "Local Participant handles: ";
-      std::list<ParticipantHandle>::iterator it;
-      for(it = mLocalParticipantHandles.begin(); it != mLocalParticipantHandles.end(); it++)
+      std::set<ParticipantHandle>::const_iterator it;
+      for(it = localParticipantHandles.begin(); it != localParticipantHandles.end(); it++)
       {
          output += Data(*it) + " ";
       }
       InfoLog(<< output);
    }
-   if(!mRemoteParticipantHandles.empty())
+   const set<ParticipantHandle> remoteParticipantHandles = getParticipantsByType<RemoteParticipant>();
+   if(!remoteParticipantHandles.empty())
    {
       output = "Remote Participant handles: ";
-      std::list<ParticipantHandle>::iterator it;
-      for(it = mRemoteParticipantHandles.begin(); it != mRemoteParticipantHandles.end(); it++)
+      std::set<ParticipantHandle>::const_iterator it;
+      for(it = remoteParticipantHandles.begin(); it != remoteParticipantHandles.end(); it++)
       {
          output += Data(*it) + " ";
       }
       InfoLog(<< output);
    }
-   if(!mMediaParticipantHandles.empty())
+   const set<ParticipantHandle> mediaParticipantHandles = getParticipantsByType<MediaResourceParticipant>();
+   if(!mediaParticipantHandles.empty())
    {
       output = "Media Participant handles: ";
-      std::list<ParticipantHandle>::iterator it;
-      for(it = mMediaParticipantHandles.begin(); it != mMediaParticipantHandles.end(); it++)
+      std::set<ParticipantHandle>::const_iterator it;
+      for(it = mediaParticipantHandles.begin(); it != mediaParticipantHandles.end(); it++)
       {
          output += Data(*it) + " ";
       }
