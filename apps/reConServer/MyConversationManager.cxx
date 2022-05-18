@@ -280,7 +280,8 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
          otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
              DebugLog(<<"SKYDEBUG: Connecting SIP");
-             std::this_thread::sleep_for( std::chrono::milliseconds( 10000 ) );
+             // Give time to ensure both endpoints are connected properly
+             std::this_thread::sleep_for( std::chrono::milliseconds( 15000 ) );
 
              answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                  DebugLog(<<"SKYDEBUG: Connecting WebRTC");
