@@ -279,11 +279,14 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 //      krp->getWaitingModeElement()->disconnect([this, _p, answeredEndpoint, otherEndpoint, krp]{
          otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
             //krp->setLocalHold(false); // FIXME - the Conversation does this automatically
+             WarningLog(<<"SKYDEBUG: Connecting SIP");
              std::this_thread::sleep_for( std::chrono::milliseconds( 5000 ) );
-            answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
-               //_p->setLocalHold(false); // FIXME - the Conversation does this automatically
-               _p->requestKeyframeFromPeer();
-               krp->requestKeyframeFromPeer();
+
+             answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
+                    WarningLog(<<"SKYDEBUG: Connecting WebRTC");
+                   //_p->setLocalHold(false); // FIXME - the Conversation does this automatically
+                   _p->requestKeyframeFromPeer();
+                   krp->requestKeyframeFromPeer();
 
             }, *otherEndpoint);
          }, *answeredEndpoint);

@@ -401,6 +401,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             mEndpoint->addMediaTranscodingStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
+            mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [this, cConnected](){
 
 

@@ -314,6 +314,12 @@ MediaElement::addMediaFlowOutStateChangeListener(std::shared_ptr<EventListener> 
    addListener(OnMediaFlowOutStateChangeEvent::EVENT_NAME, l, c);
 }
 
+void
+MediaElement::addDataChannelOpenedListener(std::shared_ptr<EventListener> l, ContinuationVoid c)
+{
+    addListener(OnDataChannelOpenEvent::EVENT_NAME, l, c);
+}
+
 PassThroughElement::PassThroughElement(std::shared_ptr<MediaPipeline> mediaPipeline)
    : MediaElement("PassThrough", mediaPipeline)
 {
@@ -557,6 +563,7 @@ WebRtcEndpoint::addOnIceGatheringDoneListener(std::shared_ptr<EventListener> l, 
 {
    addListener(OnIceGatheringDoneEvent::EVENT_NAME, l, c);
 }
+
 
 /* ====================================================================
 
