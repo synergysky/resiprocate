@@ -316,7 +316,7 @@ MediaElement::addMediaFlowOutStateChangeListener(std::shared_ptr<EventListener> 
 }
 
 void
-MediaElement::addDataChannelOpenedListener(std::shared_ptr<EventListener> l, ContinuationVoid c)
+WebRtcEndpoint::addDataChannelOpenedListener(std::shared_ptr<EventListener> l, ContinuationVoid c)
 {
     addListener(OnDataChannelOpenEvent::EVENT_NAME, l, c);
 }

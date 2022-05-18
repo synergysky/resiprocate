@@ -100,7 +100,6 @@ class MediaElement : public Object
       void addMediaTranscodingStateChangeListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
       void addMediaFlowInStateChangeListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
       void addMediaFlowOutStateChangeListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
-      void addDataChannelOpenedListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
 
    protected:
       MediaElement(const std::string& name, std::shared_ptr<MediaPipeline> mediaPipeline);
@@ -221,7 +220,7 @@ class WebRtcEndpoint : public BaseRtpEndpoint
 
       void addOnIceCandidateFoundListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
       void addOnIceGatheringDoneListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
-
+      void addDataChannelOpenedListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
 };
 
 }
