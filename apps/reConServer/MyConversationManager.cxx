@@ -248,8 +248,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
     }
     Conversation *conversation = getConversation(it->second);
     unsigned int numRemoteParticipants = conversation->getNumRemoteParticipants();
-    std::shared_ptr<KurentoRemoteParticipant> _p;
-    _p.reset(dynamic_cast<KurentoRemoteParticipant *>(conversation->getParticipant(partHandle)));
+    auto _p = dynamic_cast<KurentoRemoteParticipant *>(conversation->getParticipant(partHandle));
     std::shared_ptr<kurento::BaseRtpEndpoint> answeredEndpoint = _p->getEndpoint();
     if (numRemoteParticipants < 2)
     {
@@ -274,11 +273,11 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 
     Conversation::ParticipantMap &m = conversation->getParticipants();
     //KurentoRemoteParticipant* krp = 0; // FIXME - better to use shared_ptr
-    std::shared_ptr<KurentoRemoteParticipant> krp;
+    KurentoRemoteParticipant* krp = 0;
     Conversation::ParticipantMap::iterator _it = m.begin();
     for (; _it != m.end() && krp == 0; _it++)
     {
-        krp.reset(dynamic_cast<KurentoRemoteParticipant *>(_it->second.getParticipant()));
+        krp = dynamic_cast<KurentoRemoteParticipant *>(_it->second.getParticipant());
         if (krp == _p)
         {
             krp = 0;
@@ -290,7 +289,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
                            {
                                DebugLog(<<"SKYDEBUG: Connecting SIP");
                                // Give time to ensure both endpoints are connected properly
-                               std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+                               std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
                                answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]
                                                          {

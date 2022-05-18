@@ -365,7 +365,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
                std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
                 webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
-
                std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
                      std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
                   mIceGatheringDone = true;
