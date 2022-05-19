@@ -346,7 +346,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
-          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
          c(true, std::move(_answer));
       };
 
