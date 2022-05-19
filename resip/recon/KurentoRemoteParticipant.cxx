@@ -157,12 +157,11 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
       // FIXME - add listeners for Kurento events
 
       kurento::ContinuationString cOnOfferReady = [this, holdSdp, c](const std::string& offer){
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000) );
          StackLog(<<"offer FROM Kurento: " << offer);
          HeaderFieldValue hfv(offer.data(), offer.size());
          Mime type("application", "sdp");
          std::unique_ptr<SdpContents> _offer(new SdpContents(hfv, type));
-         //_offer->session().transformLocalHold(holdSdp);
+         _offer->session().transformLocalHold(holdSdp);
          setProposedSdp(*_offer);
          c(true, std::move(_offer));
       };
@@ -250,7 +249,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          // Tested with Kurento and Cisco EX90
          // https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-comedia-05
          // https://datatracker.ietf.org/doc/html/rfc4145
-         offerMangled->session().transformCOMedia("active", "direction");
+         // offerMangled->session().transformCOMedia("active", "direction");
       }
 
       std::ostringstream offerMangledBuf;
@@ -345,7 +344,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
             }
         }
-         //_answer->session().transformLocalHold(isHolding());
+         _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
          c(true, std::move(_answer));
