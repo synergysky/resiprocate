@@ -157,11 +157,12 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
       // FIXME - add listeners for Kurento events
 
       kurento::ContinuationString cOnOfferReady = [this, holdSdp, c](const std::string& offer){
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000) );
          StackLog(<<"offer FROM Kurento: " << offer);
          HeaderFieldValue hfv(offer.data(), offer.size());
          Mime type("application", "sdp");
          std::unique_ptr<SdpContents> _offer(new SdpContents(hfv, type));
-         _offer->session().transformLocalHold(holdSdp);
+         //_offer->session().transformLocalHold(holdSdp);
          setProposedSdp(*_offer);
          c(true, std::move(_offer));
       };
@@ -186,6 +187,7 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
             }
             else
             {
+
                cOnOfferReady(offer);
             }
          }); // generateOffer
@@ -299,7 +301,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          std::unique_ptr<SdpContents> _answer(new SdpContents(hfv, type));
 
          SdpContents::Session::MediumContainer::iterator it = _answer->session().media().begin();
-         _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
+         _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 4096));
          bool audiobw = false;
          bool videobw = false;
           std::advance(it, 2);
@@ -343,7 +345,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
             }
         }
-         _answer->session().transformLocalHold(isHolding());
+         //_answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
          c(true, std::move(_answer));
