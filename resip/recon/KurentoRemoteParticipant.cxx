@@ -346,6 +346,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
+          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
          c(true, std::move(_answer));
       };
 
@@ -364,10 +365,11 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             cOnAnswerReady(*answerStr);
             return;
          }
-         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
+         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer)
+         {
+
             if(isWebRTC)
             {
-
                std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
                webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
 
@@ -386,6 +388,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             }
             else
             {
+
                cOnAnswerReady(answer);
             }
          }, *offerMangledStr); // processOffer
