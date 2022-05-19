@@ -289,7 +289,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
                            {
                                DebugLog(<<"SKYDEBUG: Connecting SIP");
                                // Give time to ensure both endpoints are connected properly
-                               std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                               //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
                                answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]
                                                          {

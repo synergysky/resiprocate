@@ -359,30 +359,36 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             cOnAnswerReady(*answerStr);
             return;
          }
-         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
-            if(isWebRTC)
-            {
+          if(isWebRTC)
+          {
 
-               std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
-                webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
-               std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
-                     std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
-                  mIceGatheringDone = true;
-                  mEndpoint->getLocalSessionDescriptor(cOnAnswerReady);
-               });
-               webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this](){});
-               webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
+              std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
+              webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
+              std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
+                      std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
+                          mIceGatheringDone = true;
+                          mEndpoint->getLocalSessionDescriptor(cOnAnswerReady);
+                      });
+              webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady, offerMangledStr](){
+                  mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
+                      cOnAnswerReady(answer);
+                  }, *offerMangledStr); // processOffer
+              });
+              webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
 
-               webRtc->gatherCandidates([]{
+              webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
                   // on success, we continue from the IceGatheringDone event handle
-               }); // gatherCandidates
-            }
-            else
-            {
-               cOnAnswerReady(answer);
-            }
-         }, *offerMangledStr); // processOffer
+              }); // gatherCandidates
+          }
+          else
+          {
+              mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
+                  cOnAnswerReady(answer);
+              }, *offerMangledStr); // processOffer
+
+          }
+
       };
 
       if(endpointExists)
