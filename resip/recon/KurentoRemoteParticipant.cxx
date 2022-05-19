@@ -302,9 +302,13 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
          bool audiobw = false;
          bool videobw = false;
+          std::advance(it, 2);
          for(;it != _answer->session().media().end(); it++)
          {
-            SdpContents::Session::Medium& m = *it;
+             SdpContents::Session::Medium& m = *it;
+             m.setPort(0);
+             continue;
+
             if (m.name() == Data("video") && !videobw)
             {
                 m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 1792000));
@@ -336,7 +340,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             }
             else
             {
-                m.setPort(0);
+
             }
         }
          _answer->session().transformLocalHold(isHolding());
