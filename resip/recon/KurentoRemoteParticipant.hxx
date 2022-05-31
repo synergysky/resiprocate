@@ -82,6 +82,7 @@ public:
    virtual void waitingMode();
    virtual std::shared_ptr<kurento::MediaElement> getWaitingModeElement();
 
+   virtual std::string replaceParameter(std::string fmtpString, std::string parameterName, std::string replaceValue, int indexOffset = 0);
    virtual bool onMediaControlEvent(resip::MediaControlContents::MediaControl& mediaControl);
 
 protected:

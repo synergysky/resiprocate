@@ -28,7 +28,15 @@
 
 #include <rutil/WinLeakCheck.hxx>
 
+#include <iostream>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <map>
+
 #include <utility>
+
+#
 
 using namespace recon;
 using namespace resip;
@@ -182,6 +190,7 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
             }
             else
             {
+
                cOnOfferReady(offer);
             }
          }); // generateOffer
@@ -218,12 +227,16 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    AsyncBool valid = False;
 
    std::shared_ptr<SdpContents> offerMangled = std::make_shared<SdpContents>(offer);
-   while(mRemoveExtraMediaDescriptors && offerMangled->session().media().size() > 2)
+   SdpContents::Session::MediumContainer::iterator it = offerMangled->session().media().begin();
+   /*if(offerMangled->session().media().size() > 2)
    {
-      // FIXME hack to remove BFCP
-      DebugLog(<<"more than 2 media descriptors, removing the last");
-      offerMangled->session().media().pop_back();
-   }
+       std::advance(it, 2);
+       for(;it != offerMangled->session().media().end(); it++)
+       {
+            SdpContents::Session::Medium& m = *it;
+            m.setPort(0);
+       }
+   }*/
 
    try
    {
@@ -240,7 +253,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          // Tested with Kurento and Cisco EX90
          // https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-comedia-05
          // https://datatracker.ietf.org/doc/html/rfc4145
-         offerMangled->session().transformCOMedia("active", "direction");
+         // offerMangled->session().transformCOMedia("active", "direction");
       }
 
       std::ostringstream offerMangledBuf;
@@ -289,13 +302,60 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          HeaderFieldValue hfv(answer.data(), answer.size());
          Mime type("application", "sdp");
          std::unique_ptr<SdpContents> _answer(new SdpContents(hfv, type));
+
+         SdpContents::Session::MediumContainer::iterator it = _answer->session().media().begin();
+         _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
+         bool audiobw = false;
+         bool videobw = false;
+
+         for(;it != _answer->session().media().end(); it++)
+         {
+             SdpContents::Session::Medium& m = *it;
+
+            if (m.name() == Data("video") && !videobw)
+            {
+                m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 1792000));
+                videobw = true;
+                auto codecs = m.codecs();
+                m.clearCodecs();
+                for (auto codec : codecs)
+                {
+                   if (codec.getName() == Data("H264"))
+                   {
+                      auto codecParameters = codec.parameters();
+                      string fmtpString = string(codecParameters.c_str());
+                      fmtpString = replaceParameter(fmtpString, "max-fs=", "3600");
+                      fmtpString = replaceParameter(fmtpString, "profile-level-id=", "14", 4);
+                      Codec c = Codec(Data(codec.getName()), codec.payloadType(), codec.getRate(), Data(fmtpString));
+                      m.addCodec(c);
+                   }
+                }
+                //m.addAttribute("max-recv-ssrc:* 1");
+                //m.addAttribute("rtcp-fb", "* nack pli");
+                //m.addAttribute("rtcp-fb", "* ccm fir");
+                //m.addAttribute("rtcp-fb", "* ccm tmmbr");
+            }
+            else if (m.name() == Data("audio") && !audiobw)
+            {
+                //m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 128000));
+                //m.addAttribute("max-recv-ssrc:* 1");
+                audiobw = true;
+            }
+            else
+            {
+                m.setPort(0);
+            }
+        }
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
          c(true, std::move(_answer));
       };
 
-      kurento::ContinuationVoid cConnected = [this, offerMangled, offerMangledStr, isWebRTC, elEventDebug, endpointExists, c, cOnAnswerReady]{
+     
+
+      kurento::ContinuationVoid cConnected = [this, offerMangled, offerMangledStr, isWebRTC, elEventDebug, endpointExists, c, cOnAnswerReady]
+      {
          if(endpointExists && mReuseSdpAnswer)
          {
             // FIXME - Kurento should handle hold/resume
@@ -307,10 +367,13 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             cOnAnswerReady(*answerStr);
             return;
          }
-         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
+         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer)
+         {
+
             if(isWebRTC)
             {
                std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
+               webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
 
                std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
                      std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
@@ -322,11 +385,12 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
                webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
-                  // on success, we continue from the IceGatheringDone event handler
+                  // on success, we continue from the IceGatheringDone event handle
                }); // gatherCandidates
             }
             else
             {
+
                cOnAnswerReady(answer);
             }
          }, *offerMangledStr); // processOffer
@@ -338,10 +402,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
       }
       else
       {
-         //mMultiqueue.reset(new kurento::GStreamerFilter(mKurentoConversationManager.mPipeline, "videoconvert"));
-         //mMultiqueue.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
-         mPlayer.reset(new kurento::PlayerEndpoint(mKurentoConversationManager.mPipeline, "file:///tmp/test.mp4"));
-         mPassThrough.reset(new kurento::PassThroughElement(mKurentoConversationManager.mPipeline));
          mEndpoint->create([this, elError, elEventDebug, elEventKeyframeRequired, cConnected]{
             mEndpoint->addErrorListener(elError, [this](){});
             mEndpoint->addConnectionStateChangedListener(elEventDebug, [this](){});
@@ -350,27 +410,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [this](){});
             mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [this, cConnected](){
-               //mMultiqueue->create([this, cConnected]{
-                  // mMultiqueue->connect([this, cConnected]{
-                     // Note: FIXME this will be done later in the call to
-                     //       waitingMode() as that method knows whether
-                     //       to do loopback, a PlayerEndpoint or something else
-                     //mEndpoint->connect([this, cConnected]{
-                        mPlayer->create([this, cConnected]{
-                           mPassThrough->create([this, cConnected]{
-                              mEndpoint->connect([this, cConnected]{
-                                 mPassThrough->connect([this, cConnected]{
-                                    //mPlayer->play([this, cConnected]{
-                                       cConnected();
-                                       //mPlayer->connect(cConnected, *mEndpoint); // connect
-                                    //});
-                                 }, *mEndpoint);
-                              }, *mPassThrough);
-                           });
-                        });
-                     //}, *mEndpoint); // mEndpoint->connect
-                  // }, *mEndpoint); // mMultiqueue->connect
-               //}); // mMultiqueue->create
+                cConnected();
             }); // addKeyframeRequiredListener
          }); // create
       }
@@ -383,6 +423,23 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    }
 
    return valid;
+}
+
+string KurentoRemoteParticipant::replaceParameter(string fmtpString, string parameterName, string replaceValue, int indexOffset)
+{
+   int index = fmtpString.find(parameterName);
+   if(index == string::npos)
+   {
+       return fmtpString;
+   }
+   auto value = fmtpString.substr(index + 1);
+   int endIndex = value.find_first_of(';');
+   if(endIndex == string::npos)
+   {
+       return fmtpString;
+   }
+   indexOffset += parameterName.length();
+   return fmtpString.replace(index + indexOffset, endIndex - indexOffset + 1, replaceValue);
 }
 
 void
@@ -449,7 +506,7 @@ KurentoRemoteParticipant::waitingMode()
       }
       else
       {
-         mEndpoint->connect([this]{}, *mPassThrough); // FIXME Kurento async
+//         mEndpoint->connect([this]{}, *mPassThrough); // FIXME Kurento async
       }
       requestKeyframeFromPeer();
    }, *mEndpoint);
@@ -464,7 +521,8 @@ KurentoRemoteParticipant::getWaitingModeElement()
    }
    else
    {
-      return mPassThrough;
+//      return mPassThrough;
+        return mEndpoint;
    }
 }
 
