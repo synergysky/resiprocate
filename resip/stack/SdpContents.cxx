@@ -1238,10 +1238,18 @@ SdpContents::Session::isWebRTC() const
    {
       const SdpContents::Session::Medium& m = *it;
       mediumTransports.insert(m.protocol());
+       DebugLog(<<"INSIDE isWebRTC method: " << m.protocol().c_str());
+
    }
-   return std::find(mediumTransports.cbegin(),
-      mediumTransports.end(),
-      "RTP/SAVPF") != mediumTransports.end();
+
+    auto isRTPSAVPFound = [](resip::Data i){
+       string si = i.c_str();
+       return (si.compare("RTP/SAVPF") || si.compare("UDP/TLS/RTP/SAVPF")) ? true : false;
+    };
+
+    return std::find_if(mediumTransports.cbegin(),
+                     mediumTransports.end(),
+                        isRTPSAVPFound) != mediumTransports.end();
 }
 
 void
