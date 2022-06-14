@@ -240,16 +240,16 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
       bool isWebRTC = offerMangled->session().isWebRTC();
       DebugLog(<<"peer is " << (isWebRTC ? "WebRTC":"not WebRTC"));
 
-      if(!isWebRTC)
-      {
-         // RFC 4145 uses the attribute name "setup"
-         // We override the attribute name and use the legacy name "direction"
-         // from the drafts up to draft-ietf-mmusic-sdp-comedia-05.txt
-         // Tested with Kurento and Cisco EX90
-         // https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-comedia-05
-         // https://datatracker.ietf.org/doc/html/rfc4145
-         offerMangled->session().transformCOMedia("active", "direction");
-      }
+//      if(!isWebRTC)
+//      {
+//         // RFC 4145 uses the attribute name "setup"
+//         // We override the attribute name and use the legacy name "direction"
+//         // from the drafts up to draft-ietf-mmusic-sdp-comedia-05.txt
+//         // Tested with Kurento and Cisco EX90
+//         // https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-comedia-05
+//         // https://datatracker.ietf.org/doc/html/rfc4145
+//         offerMangled->session().transformCOMedia("active", "direction");
+//      }
 
       std::ostringstream offerMangledBuf;
       offerMangledBuf << *offerMangled;
