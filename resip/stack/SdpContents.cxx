@@ -1242,14 +1242,25 @@ SdpContents::Session::isWebRTC() const
 
    }
 
-    auto isRTPSAVPFound = [](resip::Data i){
-       string si = i.c_str();
-       return (si.compare("RTP/SAVPF") || si.compare("UDP/TLS/RTP/SAVPF")) ? true : false;
-    };
+//    auto isRTPSAVPFound = [](resip::Data i){
+//       string si = i.c_str();
+//       return (si.compare("RTP/SAVPF") || si.compare("UDP/TLS/RTP/SAVPF")) ? true : false;
+//    };
+//
+//    return std::find_if(mediumTransports.cbegin(),
+//                     mediumTransports.end(),
+//                        isRTPSAVPFound) != mediumTransports.end();
 
-    return std::find_if(mediumTransports.cbegin(),
-                     mediumTransports.end(),
-                        isRTPSAVPFound) != mediumTransports.end();
+    bool isRtpSavp = std::find(mediumTransports.cbegin(),
+                               mediumTransports.end(),
+                               "RTP/SAVPF") != mediumTransports.end();
+
+    bool isUdpTlsRtpSavp = std::find(mediumTransports.cbegin(),
+                               mediumTransports.end(),
+                               "UDP/TLS/RTP/SAVPF") != mediumTransports.end();
+
+
+    return isRtpSavp || isUdpTlsRtpSavp;
 }
 
 void
