@@ -493,8 +493,10 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    {
       c(false, nullptr);
    }
+}
 
-string KurentoRemoteParticipant::replaceParameter(string fmtpString, string parameterName, string replaceValue, int indexOffset)
+string
+KurentoRemoteParticipant::replaceParameter(string fmtpString, string parameterName, string replaceValue, int indexOffset)
 {
    int index = fmtpString.find(parameterName);
    if(index == string::npos)
@@ -590,9 +592,9 @@ KurentoRemoteParticipant::waitingMode()
       }
       else
       {
-         mEndpoint->connect([this]{
-            requestKeyframeFromPeer();
-         mEndpoint->connect([this]{}, *mPassThrough); // FIXME Kurento async
+          mEndpoint->connect([this]{
+              requestKeyframeFromPeer();
+          }, *mPassThrough); // FIXME Kurento async
       }
       requestKeyframeFromPeer();
    }, *mEndpoint);
