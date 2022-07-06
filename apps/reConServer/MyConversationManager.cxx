@@ -360,20 +360,17 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
                                                                                                          <<"release completed for myEndpoint: " << otherEndpoint->getName());
                                                                                              });
                                                                                  });
-                                                                     });
+                                                                     }, *otherEndpoint);
 
-                                          });
+                                          }, *myEndpoint);
             } else
             {
-                myEndpoint->disconnect([this, krp, myEndpoint]
-                                       {
-                                           DebugLog(<<"SK2307: Inside krp else statement");
-                                           myEndpoint->release([this, myEndpoint]
-                                                               {
-                                                                   DebugLog(
-                                                                           <<"release completed for myEndpoint: " << myEndpoint->getName());
-                                                               });
-                                       });
+                DebugLog(<<"SK2307: Inside krp else statement");
+                myEndpoint->release([this, myEndpoint]
+                                    {
+                                        DebugLog(
+                                                <<"release completed for myEndpoint: " << myEndpoint->getName());
+                                    });
 
             }
             return;

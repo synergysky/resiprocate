@@ -43,8 +43,12 @@ public:
    virtual ~Conversation();
 
    void addParticipant(Participant* participant, unsigned int inputGain = 100, unsigned int outputGain = 100);
+   Participant* getParticipant(ParticipantHandle partHandle);
    void removeParticipant(Participant* participant);
    void modifyParticipantContribution(Participant* participant, unsigned int inputGain, unsigned int outputGain);
+
+   typedef std::map<ParticipantHandle, ConversationParticipantAssignment> ParticipantMap;
+   ParticipantMap& getParticipants() { return mParticipants; }
 
    unsigned int getNumLocalParticipants() { return mNumLocalParticipants; }
    unsigned int getNumRemoteParticipants() { return mNumRemoteParticipants; }
@@ -82,8 +86,6 @@ protected:
    friend class BridgeMixer;
    friend class SipXBridgeMixer;
    friend class KurentoBridgeMixer;
-   typedef std::map<ParticipantHandle, ConversationParticipantAssignment> ParticipantMap;
-   ParticipantMap& getParticipants() { return mParticipants; }  
 
    friend class AddParticipantCmd;
    friend class JoinConversationCmd;
@@ -106,7 +108,6 @@ private:
    RelatedConversationSet *mRelatedConversationSet;
 
    ParticipantMap mParticipants;
-   Participant* getParticipant(ParticipantHandle partHandle);
    bool mDestroying;
    unsigned int mNumLocalParticipants;
    unsigned int mNumRemoteParticipants;

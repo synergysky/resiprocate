@@ -778,6 +778,8 @@ protected:
    std::set<ConversationHandle> getConversationHandles() const;  // thread safe
    std::set<ParticipantHandle> getParticipantHandlesByType(ParticipantType participantType) const;  // thread safe
 
+   Participant* getParticipant(ParticipantHandle partHandle);
+
    bool isShuttingDown() { return mShuttingDown; }
 
 private:
@@ -872,7 +874,6 @@ private:
    ParticipantMap mParticipants;
    mutable std::mutex mParticipantHandlesMutex;
    std::atomic<ParticipantHandle> mCurrentParticipantHandle;
-   Participant* getParticipant(ParticipantHandle partHandle);
    std::map<ParticipantType, std::set<ParticipantHandle>> mParticipantHandlesByType;
 
    MediaResourceCache mMediaResourceCache;
