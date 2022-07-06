@@ -1,6 +1,7 @@
 #include "Event.hxx"
+#include "KurentoSubsystem.hxx"
 
-#define RESIPROCATE_SUBSYSTEM resip::Subsystem::APP  // FIXME: MEDIA or KURENTO?
+#define RESIPROCATE_SUBSYSTEM kurento::KurentoSubsystem::KURENTOCLIENT
 
 using namespace kurento;
 
@@ -56,6 +57,10 @@ Event::make_event(const std::string& eventType, const json::Object& message)
 OnIceCandidateFoundEvent::OnIceCandidateFoundEvent(const json::Object& message)
    : Event(EVENT_NAME)
 {
+   json::Object candidate = message["params"]["value"]["data"]["candidate"];
+   mCandidate = json::String(candidate["candidate"]).Value();
+   mLineIndex = json::Number(candidate["sdpMLineIndex"]).Value();
+   mId = json::String(candidate["sdpMid"]).Value();
 }
 
 OnIceCandidateFoundEvent::~OnIceCandidateFoundEvent()

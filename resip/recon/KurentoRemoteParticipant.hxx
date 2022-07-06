@@ -35,7 +35,7 @@ class SipMessage;
 
 namespace recon
 {
-class KurentoConversationManager;
+class KurentoMediaStackAdapter;
 
 /**
   This class represent a remote participant.  A remote participant is a 
@@ -48,12 +48,12 @@ class KurentoRemoteParticipant : public virtual RemoteParticipant, public virtua
 public:
    KurentoRemoteParticipant(ParticipantHandle partHandle,   // UAC
                      ConversationManager& conversationManager,
-                     KurentoConversationManager& kurentoConversationManager,
+                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
    KurentoRemoteParticipant(ConversationManager& conversationManager,            // UAS or forked leg
-                     KurentoConversationManager& kurentoConversationManager,
+                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
@@ -84,6 +84,7 @@ public:
 
    virtual std::string replaceParameter(std::string fmtpString, std::string parameterName, std::string replaceValue, int indexOffset = 0);
    virtual bool onMediaControlEvent(resip::MediaControlContents::MediaControl& mediaControl);
+   virtual bool onTrickleIce(resip::TrickleIceContents& trickleIce) override;
 
 protected:
    virtual bool mediaStackPortAvailable();
@@ -92,7 +93,7 @@ protected:
 
 private:
    kurento::BaseRtpEndpoint* newEndpoint();
-   resip::AsyncBool buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) override;
+   virtual void buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) override;
 
    std::shared_ptr<kurento::BaseRtpEndpoint> mEndpoint;
    volatile bool mIceGatheringDone;  // FIXME Kurento use a concurrency primitive, e.g. condition_variable

@@ -78,10 +78,10 @@ RemoteIMSessionParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
    ConversationProfile* profile = getDialogSet().getConversationProfile().get();
    resip_assert(profile);
 
-   offer = profile->sessionCaps();
+   offer = profile->sessionCaps(); // FIXME MediaStackAdapter / Kurento
 
    // Set sessionid and version for this sdp
-   UInt64 currentTime = Timer::getTimeMicroSec();
+   uint64_t currentTime = Timer::getTimeMicroSec();
    offer.session().origin().getSessionId() = currentTime;
    offer.session().origin().getVersion() = currentTime;
 
@@ -96,10 +96,10 @@ RemoteIMSessionParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
    c(true, std::move(_offer));
 }
 
-AsyncBool
+void
 RemoteIMSessionParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpReady c)
 {
-   AsyncBool valid = False;
+   bool valid = false;
    std::unique_ptr<SdpContents> _answer(new SdpContents);
    SdpContents& answer = *_answer;
 
@@ -108,9 +108,9 @@ RemoteIMSessionParticipant::buildSdpAnswer(const SdpContents& offer, Continuatio
       ConversationProfile* profile = getDialogSet().getConversationProfile().get();
       resip_assert(profile);
 
-      answer = profile->sessionCaps();
+      answer = profile->sessionCaps(); // FIXME MediaStackAdapter / Kurento
 
-      UInt64 currentTime = Timer::getTimeMicroSec();
+      uint64_t currentTime = Timer::getTimeMicroSec();
       answer.session().origin().getSessionId() = currentTime;
       answer.session().origin().getVersion() = currentTime;
 
@@ -135,7 +135,7 @@ RemoteIMSessionParticipant::buildSdpAnswer(const SdpContents& offer, Continuatio
             medium.addFormat("null");
             answer.session().addMedium(medium);
 
-            valid = True;
+            valid = true;
          }
          else
          {
@@ -152,12 +152,12 @@ RemoteIMSessionParticipant::buildSdpAnswer(const SdpContents& offer, Continuatio
    catch(BaseException &e)
    {
       WarningLog( << "buildSdpAnswer: exception parsing SDP offer: " << e.getMessage());
-      valid = False;
+      valid = false;
    }
    catch(...)
    {
       WarningLog( << "buildSdpAnswer: unknown exception parsing SDP offer");
-      valid = False;
+      valid = false;
    }
 
    //InfoLog( << "SDPOffer: " << offer);
@@ -167,8 +167,7 @@ RemoteIMSessionParticipant::buildSdpAnswer(const SdpContents& offer, Continuatio
       setLocalSdp(answer);
       setRemoteSdp(offer);
    }
-   c(valid == True, std::move(_answer));
-   return valid;
+   c(valid, std::move(_answer));
 }
 
 

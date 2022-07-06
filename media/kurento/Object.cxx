@@ -3,9 +3,10 @@
 #include "rutil/Subsystem.hxx"
 #include "rutil/ResipAssert.h"
 
+#include "KurentoSubsystem.hxx"
 #include "Object.hxx"
 
-#define RESIPROCATE_SUBSYSTEM resip::Subsystem::APP  // FIXME: MEDIA or KURENTO?
+#define RESIPROCATE_SUBSYSTEM kurento::KurentoSubsystem::KURENTOCLIENT
 
 using namespace kurento;
 
@@ -254,8 +255,6 @@ MediaElement::connect(ContinuationVoid c, MediaElement& element)
    json::Object params;
    params[JSON_RPC_SINK] = json::String(peerId);
    invokeVoidMethod("connect", c, params);
-   mConnectedTo = peerId;
-   element.setConnectedTo(getId());
 }
 
 void
@@ -264,19 +263,6 @@ MediaElement::disconnect(ContinuationVoid c, MediaElement& element)
    json::Object params;
    params[JSON_RPC_SINK] = json::String(element.getId());
    invokeVoidMethod("disconnect", c, params);
-   mConnectedTo.clear();
-   element.setConnectedTo("");
-}
-
-void
-MediaElement::disconnect(ContinuationVoid c)
-{
-   if(mConnectedTo.empty()) { c(); return; }; // FIXME
-   json::Object params;
-   params[JSON_RPC_SINK] = json::String(mConnectedTo);
-   invokeVoidMethod("disconnect", c, params);
-   mConnectedTo.clear();
-   //element.setConnectedTo(""); // FIXME
 }
 
 void
@@ -547,11 +533,16 @@ WebRtcEndpoint::gatherCandidates(ContinuationVoid c)
    invokeVoidMethod("gatherCandidates", c);
 }
 
-/*void
-WebRtcEndpoint::addIceCandidate(ContinuationVoid c, const std::string& candidate)
+void
+WebRtcEndpoint::addIceCandidate(ContinuationVoid c, const std::string& candidate, const std::string& mid, unsigned int lineIndex)
 {
-   invokeVoidMethod("addIceCandidate", c);
-}*/
+   json::Object params;
+   params["candidate"] = json::Object();
+   params["candidate"]["candidate"] = json::String(candidate);
+   params["candidate"]["sdpMid"] = json::String(mid);
+   params["candidate"]["sdpMLineIndex"] = json::Number(lineIndex);
+   invokeVoidMethod("addIceCandidate", c, params);
+}
 
 void
 WebRtcEndpoint::addOnIceCandidateFoundListener(std::shared_ptr<EventListener> l, ContinuationVoid c)

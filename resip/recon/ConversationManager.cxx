@@ -1,7 +1,6 @@
 // resip includes
 #include <rutil/Log.hxx>
 #include <rutil/Logger.hxx>
-#include <rutil/Lock.hxx>
 #include <rutil/Random.hxx>
 #include <resip/dum/DialogUsageManager.hxx>
 #include <resip/dum/ClientInviteSession.hxx>
@@ -80,6 +79,12 @@ ConversationManager::shutdown()
    {
       InfoLog(<< "Destroying participant: " << j->second->getParticipantHandle());
       j->second->destroyParticipant();
+   }
+
+   if(mMediaStackAdapter.get())
+   {
+      mMediaStackAdapter->shutdown();
+      mMediaStackAdapter.reset();
    }
 }
 
@@ -291,7 +296,7 @@ ConversationManager::registerConversation(Conversation *conversation)
 {
    mConversations[conversation->getHandle()] = conversation;
 
-   WriteLock lock(mConversationHandlesMutex);
+   std::lock_guard<std::mutex> lock(mConversationHandlesMutex);
    mConversationHandles.insert(conversation->getHandle());
 }
 
@@ -300,7 +305,7 @@ ConversationManager::unregisterConversation(Conversation *conversation)
 {
    mConversations.erase(conversation->getHandle());
 
-   WriteLock lock(mConversationHandlesMutex);
+   std::lock_guard<std::mutex> lock(mConversationHandlesMutex);
    mConversationHandles.erase(conversation->getHandle());
 }
 
@@ -315,7 +320,7 @@ ConversationManager::registerParticipant(Participant *participant)
 {
    mParticipants[participant->getParticipantHandle()] = participant;
    
-   WriteLock lock(mParticipantHandlesMutex);
+   std::lock_guard<std::mutex> lock(mParticipantHandlesMutex);
    mParticipantHandlesByType[participant->getParticipantType()].insert(participant->getParticipantHandle());
 }
 
@@ -325,7 +330,7 @@ ConversationManager::unregisterParticipant(Participant *participant)
    InfoLog(<< "participant unregistered, handle=" << participant->getParticipantHandle());
    mParticipants.erase(participant->getParticipantHandle());
 
-   WriteLock lock(mParticipantHandlesMutex);
+   std::lock_guard<std::mutex> lock(mParticipantHandlesMutex);
    mParticipantHandlesByType[participant->getParticipantType()].erase(participant->getParticipantHandle());
 }
 
@@ -350,20 +355,19 @@ ConversationManager::post(resip::ApplicationMessage& message, unsigned int ms)
 void 
 ConversationManager::buildSdpOffer(ConversationProfile* profile, SdpContents& offer)
 {
-   // FIXME Kurento: need to build an OPTIONS response that resembles Kurento SDP
-
    // copy over session capabilities
    offer = profile->sessionCaps();
 
    // Set sessionid and version for this offer
-   UInt64 currentTime = Timer::getTimeMicroSec();
+   uint64_t currentTime = Timer::getTimeMicroSec();
    offer.session().origin().getSessionId() = currentTime;
    offer.session().origin().getVersion() = currentTime;  
 
    // Set local port in offer
-   // for now we only allow 1 audio media
+   // make sure at least one medium is present
    resip_assert(offer.session().media().size() > 0);
-   resip_assert(offer.session().media().front().name() == "audio");
+   // make sure at least one medium is audio
+   resip_assert(offer.session().getMediaByType("audio").size() > 0);
 }
 
 Participant* 
@@ -397,14 +401,14 @@ ConversationManager::getConversation(ConversationHandle convHandle)
 std::set<ConversationHandle>
 ConversationManager::getConversationHandles() const
 {
-   ReadLock lock(mConversationHandlesMutex);
+   std::lock_guard<std::mutex> lock(mConversationHandlesMutex);
    return mConversationHandles;
 }
 
 std::set<ParticipantHandle>
 ConversationManager::getParticipantHandlesByType(ParticipantType participantType) const
 {
-   ReadLock lock(mParticipantHandlesMutex);
+   std::lock_guard<std::mutex> lock(mParticipantHandlesMutex);
    std::set<ParticipantHandle> participantHandles;
    auto it = mParticipantHandlesByType.find(participantType);
    if (it != mParticipantHandlesByType.end())
@@ -461,7 +465,7 @@ ConversationManager::notifyDtmfEvent(ParticipantHandle partHandle, int dtmf, int
 RemoteParticipant* 
 ConversationManager::createAppropriateRemoteParticipantInstance(DialogUsageManager& dum, RemoteParticipantDialogSet& rpds)
 {
-   RemoteParticipant* rp;
+   RemoteParticipant* rp = nullptr;
    if (dynamic_cast<RemoteIMSessionParticipantDialogSet*>(&rpds) != nullptr)
    {
       rp = new RemoteIMSessionParticipant(*this, dum, rpds);
@@ -477,7 +481,7 @@ ConversationManager::createAppropriateRemoteParticipantInstance(DialogUsageManag
 RemoteParticipant* 
 ConversationManager::createAppropriateRemoteParticipantInstance(ParticipantHandle partHandle, DialogUsageManager& dum, RemoteParticipantDialogSet& rpds)
 {
-   RemoteParticipant* rp;
+   RemoteParticipant* rp = nullptr;
    if (dynamic_cast<RemoteIMSessionParticipantDialogSet*>(&rpds) != nullptr)
    {
       rp = new RemoteIMSessionParticipant(partHandle, *this, dum, rpds);
@@ -858,7 +862,7 @@ ConversationManager::hasDefaultExpires() const
    return true;
 }
 
-UInt32 
+uint32_t 
 ConversationManager::getDefaultExpires() const
 {
    return 60;

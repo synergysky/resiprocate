@@ -11,6 +11,7 @@
 #include <rutil/AsyncBool.hxx>
 
 #include <resip/stack/MediaControlContents.hxx>
+#include <resip/stack/TrickleIceContents.hxx>
 
 #include <resip/dum/AppDialogSet.hxx>
 #include <resip/dum/AppDialog.hxx>
@@ -85,6 +86,7 @@ public:
    virtual void processReferNotify(resip::ClientSubscriptionHandle h, const resip::SipMessage& notify);
 
    virtual bool onMediaControlEvent(resip::MediaControlContents::MediaControl& mediaControl);
+   virtual bool onTrickleIce(resip::TrickleIceContents& trickleIce);
 
    // Called by RemoteParticipantDialogSet when Related Conversations should be destroyed
    virtual void destroyConversations();
@@ -148,10 +150,13 @@ protected:
    virtual void hold();
    virtual void unhold();
 
+   bool isTrickleIce() { return mTrickleIce; };
+   virtual void enableTrickleIce();
+
 private:       
    void provideOffer(bool postOfferAccept);
-   resip::AsyncBool provideAnswer(const resip::SdpContents& offer, bool postAnswerAccept, bool postAnswerAlert);
-   virtual resip::AsyncBool buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) = 0;
+   void provideAnswer(const resip::SdpContents& offer, bool postAnswerAccept, bool postAnswerAlert);
+   virtual void buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) = 0;
    virtual void replaceWithParticipant(Participant* replacingParticipant);
 
    resip::DialogUsageManager &mDum;
@@ -160,6 +165,7 @@ private:
    RemoteParticipantDialogSet& mDialogSet;
    resip::DialogId mDialogId;
 
+   friend class RemoteParticipantDialogSet;
    typedef enum
    {
       Connecting=1, 
@@ -177,6 +183,7 @@ private:
    bool mLocalHold;
    bool mRemoteHold;
    void stateTransition(State state);
+   bool mTrickleIce;
 
    resip::AppDialogHandle mReferringAppDialog; 
 

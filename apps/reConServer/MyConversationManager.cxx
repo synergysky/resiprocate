@@ -31,18 +31,19 @@ using namespace resip;
 using namespace recon;
 using namespace reconserver;
 
-MyConversationManager::MyConversationManager(const ReConServerConfig& config, const Data& kurentoUri, bool localAudioEnabled, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled)
+MyConversationManager::MyConversationManager(const ReConServerConfig& config, bool localAudioEnabled, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled)
       : ConversationManager(nullptr),
-          mConfig(config),
+        mConfig(config),
         mAutoAnswerEnabled(autoAnswerEnabled)
 { 
 #ifdef PREFER_KURENTO
-   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<KurentoConversationManager>(*this, kurentoUri);
+   Data kurentoUri = config.getConfigData("KurentoURI", "ws://127.0.0.1:8888/kurento");
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<KurentoMediaStackAdapter>(*this, kurentoUri);
 #else
 #ifdef USE_SIPXTAPI
-   SipXConversationManager::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
-      ? SipXConversationManager::sipXGlobalMediaInterfaceMode : SipXConversationManager::sipXConversationMediaInterfaceMode;
-   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<SipXConversationManager>(*this, localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false);
+   SipXMediaStackAdapter::MediaInterfaceMode mediaInterfaceMode = config.getConfigBool("GlobalMediaInterface", false)
+      ? SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode : SipXMediaStackAdapter::sipXConversationMediaInterfaceMode;
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<SipXMediaStackAdapter>(*this, localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false);
 #else
    #error Need Kurento or sipXtapi
 #endif
@@ -89,7 +90,7 @@ MyConversationManager::startup()
    if(getMediaStackAdapter().supportsLocalAudio())
     {
         // Create initial local participant and conversation
-      ConversationHandle initialConversation = createConversation();
+      ConversationHandle initialConversation = createConversation(getConfig().getConfigAutoHoldMode("AutoHoldMode", ConversationManager::AutoHoldEnabled));
       addParticipant(initialConversation, createLocalParticipant());
         resip::Uri uri("tone:dialtone;duration=1000");
       createMediaResourceParticipant(initialConversation, uri);
@@ -98,7 +99,7 @@ MyConversationManager::startup()
         // If no local audio - just create a starter conversation
         // FIXME - do we really need an empty conversation on startup?
         // If in B2BUA mode, this will never be used
-        createConversation();
+      createConversation(getConfig().getConfigAutoHoldMode("AutoHoldMode", ConversationManager::AutoHoldEnabled));
     }
 
     // Load 2 items into cache for testing
@@ -185,22 +186,21 @@ MyConversationManager::onDtmfEvent(ParticipantHandle partHandle, int dtmf, int d
 }
 
 void
-MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage &msg, bool autoAnswer,
-                                             ConversationProfile &conversationProfile)
+MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage& msg, bool autoAnswer, ConversationProfile& conversationProfile)
 {
-    InfoLog(<< "onIncomingParticipant: handle=" << partHandle << "auto=" << autoAnswer << " msg=" << msg.brief());
-    if (mAutoAnswerEnabled)
-    {
-        const resip::Data &room = msg.header(h_RequestLine).uri().user();
-        RoomMap::const_iterator it = mRooms.find(room);
-        if (it == mRooms.end())
-        {
-            InfoLog(<<"creating Conversation for room: " << room);
-            ConversationHandle convHandle = createConversation();
-            mRooms[room] = convHandle;
-            // ensure a local participant is in the conversation - create one if one doesn't exist
+   InfoLog(<< "onIncomingParticipant: handle=" << partHandle << "auto=" << autoAnswer << " msg=" << msg.brief());
+   if(mAutoAnswerEnabled)
+   {
+      const resip::Data& room = msg.header(h_RequestLine).uri().user();
+      RoomMap::const_iterator it = mRooms.find(room);
+      if(it == mRooms.end())
+      {
+         InfoLog(<<"creating Conversation for room: " << room);
+         ConversationHandle convHandle = createConversation(getConfig().getConfigAutoHoldMode("AutoHoldMode", ConversationManager::AutoHoldEnabled));
+         mRooms[room] = convHandle;
+         // ensure a local participant is in the conversation - create one if one doesn't exist
          if(getMediaStackAdapter().supportsLocalAudio())
-            {
+         {
             ParticipantHandle localPartHandle = 0;
             const set<ParticipantHandle> participantHandles = getParticipantHandlesByType(ConversationManager::ParticipantType_Local);
             // If no local participant then create one, otherwise use first in set

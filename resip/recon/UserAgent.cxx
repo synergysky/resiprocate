@@ -12,7 +12,7 @@
 #include "ReconSubsystem.hxx"
 
 #ifdef USE_SIPXTAPI
-#include "SipXConversationManager.hxx"
+#include "SipXMediaStackAdapter.hxx"
 #endif
 
 #include "reflow/FlowManagerSubsystem.hxx"
@@ -41,7 +41,7 @@
 #include <rutil/WinLeakCheck.hxx>
 #include <rutil/Random.hxx>
 
-#include <KurentoConversationManager.hxx>
+#include <KurentoMediaStackAdapter.hxx>
 
 #include <utility>
 
