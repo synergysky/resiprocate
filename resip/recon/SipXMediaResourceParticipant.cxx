@@ -1,7 +1,7 @@
 #include "SipXBridgeMixer.hxx"
 #include "ReconSubsystem.hxx"
 #include "SipXMediaResourceParticipant.hxx"
-#include "SipXConversationManager.hxx"
+#include "SipXMediaStackAdapter.hxx"
 #include "Conversation.hxx"
 #include "UserAgent.hxx"
 
@@ -35,11 +35,12 @@ static const resip::ExtensionParameter p_format("format");
 
 
 SipXMediaResourceParticipant::SipXMediaResourceParticipant(ParticipantHandle partHandle,
-                                                   SipXConversationManager& sipXConversationManager,
+                                                   ConversationManager& conversationManager,
+                                                   SipXMediaStackAdapter& sipXMediaStackAdapter,
                                                    const Uri& mediaUrl)
-: Participant(partHandle, sipXConversationManager),
-  MediaResourceParticipant(partHandle, sipXConversationManager, mediaUrl),
-  SipXParticipant(partHandle, sipXConversationManager),
+: Participant(partHandle, ConversationManager::ParticipantType_MediaResource, conversationManager),
+  MediaResourceParticipant(partHandle, conversationManager, mediaUrl),
+  SipXParticipant(partHandle, ConversationManager::ParticipantType_MediaResource, conversationManager, sipXMediaStackAdapter),
   mStreamPlayer(0),
   mPortOnBridge(-1)
 {
@@ -466,7 +467,7 @@ SipXMediaResourceParticipant::getConnectionPortOnBridge()
       }
       InfoLog(<< "SipXMediaResourceParticipant getConnectionPortOnBridge, handle=" << mHandle << ", mPortOnBridge=" << mPortOnBridge);
    }
-   assert(mPortOnBridge != -1);
+   resip_assert(mPortOnBridge != -1);
    return mPortOnBridge;
 }
 

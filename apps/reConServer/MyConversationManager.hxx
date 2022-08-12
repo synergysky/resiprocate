@@ -11,10 +11,7 @@
 
 #include <rutil/Data.hxx>
 #ifdef USE_SIPXTAPI
-#include <resip/recon/SipXConversationManager.hxx>
-#endif
-#ifdef USE_KURENTO
-#include <resip/recon/KurentoConversationManager.hxx>
+#include <resip/recon/SipXMediaStackAdapter.hxx>
 #endif
 
 #include "reConServerConfig.hxx"
@@ -27,33 +24,25 @@ namespace reconserver
 #ifdef USE_KURENTO
 #define PREFER_KURENTO
 // FIXME: hard-coded to use Kurento when selected at compile time
-// Need to have both USE_KURENTO and USE_SIPXTAPI as we haven't removed
-// some references to sipXtapi in parts of the code
-class MyConversationManager : public recon::KurentoConversationManager
 #else
+#ifdef USE_SIPXTAPI
 #define PREFER_SIPXTAPI
-class MyConversationManager : public recon::SipXConversationManager
+#else
+#error No media stack enabled
 #endif
+#endif
+
+class MyConversationManager : public recon::ConversationManager
 {
 public:
 
-#ifdef PREFER_KURENTO
-   MyConversationManager(const ReConServerConfig& config, const resip::Data& kurentoUri, bool autoAnswerEnabled);
-   ReConServerConfig mConfig;
-#else
-   MyConversationManager(bool localAudioEnabled, recon::SipXConversationManager::MediaInterfaceMode mediaInterfaceMode, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled);
-#endif
+   MyConversationManager(const ReConServerConfig& config, bool localAudioEnabled, int defaultSampleRate, int maxSampleRate, bool autoAnswerEnabled);
    virtual ~MyConversationManager() {};
 
    virtual void startup();
    
-   virtual recon::ConversationHandle createConversation(AutoHoldMode autoHoldMode = AutoHoldEnabled) override;
-   virtual recon::ParticipantHandle createRemoteParticipant(recon::ConversationHandle convHandle, const resip::NameAddr& destination, recon::ConversationManager::ParticipantForkSelectMode forkSelectMode = ForkSelectAutomatic, const std::shared_ptr<recon::ConversationProfile>& conversationProfile = nullptr, const std::multimap<resip::Data, resip::Data>& extraHeaders = std::multimap<resip::Data, resip::Data>()) override;
-   virtual recon::ParticipantHandle createMediaResourceParticipant(recon::ConversationHandle convHandle, const resip::Uri& mediaUrl) override;
-   virtual recon::ParticipantHandle createLocalParticipant() override;
    virtual void onConversationDestroyed(recon::ConversationHandle convHandle) override;
    virtual void onParticipantDestroyed(recon::ParticipantHandle partHandle) override;
-   virtual void onParticipantDestroyedKurento(recon::ParticipantHandle partHandle);
    virtual void onDtmfEvent(recon::ParticipantHandle partHandle, int dtmf, int duration, bool up) override;
    virtual void onIncomingParticipant(recon::ParticipantHandle partHandle, const resip::SipMessage& msg, bool autoAnswer, recon::ConversationProfile& conversationProfile) override;
    virtual void onRequestOutgoingParticipant(recon::ParticipantHandle partHandle, const resip::SipMessage& msg, recon::ConversationProfile& conversationProfile) override;
@@ -119,12 +108,8 @@ public:
    void FastUpdateRequestWorkerLoop();
 
 protected:
-   virtual void configureRemoteParticipant(recon::KurentoRemoteParticipant *rp) override;
-   virtual void onIncomingKurento(recon::ParticipantHandle partHandle, const resip::SipMessage& msg);
-   std::list<recon::ConversationHandle> mConversationHandles;
-   std::list<recon::ParticipantHandle> mLocalParticipantHandles;
-   std::list<recon::ParticipantHandle> mRemoteParticipantHandles;
-   std::list<recon::ParticipantHandle> mMediaParticipantHandles;
+   virtual const ReConServerConfig& getConfig() const { return mConfig; };
+   ReConServerConfig mConfig;
    typedef std::map<resip::Data, recon::ConversationHandle> RoomMap;
    RoomMap mRooms;
    bool mAutoAnswerEnabled;

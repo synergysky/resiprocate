@@ -6,7 +6,7 @@
 
 namespace recon
 {
-class KurentoConversationManager;
+class KurentoMediaStackAdapter;
 
 /**
   This is the base class for a KurentoRemoteParticipant, KurentoLocalParticipant and a
@@ -19,14 +19,18 @@ class KurentoParticipant : public virtual Participant
    public:  
 
       KurentoParticipant(ParticipantHandle partHandle,
-         KurentoConversationManager& conversationManager);
+         ConversationManager::ParticipantType participantType,
+         ConversationManager& conversationManager,
+         KurentoMediaStackAdapter& kurentoMediaStackAdapter);
 
-      KurentoParticipant(KurentoConversationManager& conversationManager);
+      KurentoParticipant(ConversationManager::ParticipantType participantType,
+         ConversationManager& conversationManager,
+         KurentoMediaStackAdapter& kurentoMediaStackAdapter);
 
       virtual ~KurentoParticipant();
 
    protected:
-      KurentoConversationManager &mKurentoConversationManager;
+      KurentoMediaStackAdapter &mKurentoMediaStackAdapter;
 };
 
 }

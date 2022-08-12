@@ -1,4 +1,4 @@
-#include "KurentoConversationManager.hxx"
+#include "KurentoMediaStackAdapter.hxx"
 #include "ReconSubsystem.hxx"
 #include "KurentoParticipant.hxx"
 #include "KurentoConversation.hxx"
@@ -14,15 +14,19 @@ using namespace std;
 #define RESIPROCATE_SUBSYSTEM ReconSubsystem::RECON
 
 KurentoParticipant::KurentoParticipant(ParticipantHandle partHandle,
-                         KurentoConversationManager& sipXConversationManager)
-: Participant(partHandle, sipXConversationManager),
-  mKurentoConversationManager(sipXConversationManager)
+                         ConversationManager::ParticipantType participantType,
+                         ConversationManager& conversationManager,
+                         KurentoMediaStackAdapter& kurentoMediaStackAdapter)
+: Participant(partHandle, participantType, conversationManager),
+  mKurentoMediaStackAdapter(kurentoMediaStackAdapter)
 {
 }
 
-KurentoParticipant::KurentoParticipant(KurentoConversationManager& sipXConversationManager)
-: Participant(sipXConversationManager),
-  mKurentoConversationManager(sipXConversationManager)
+KurentoParticipant::KurentoParticipant(ConversationManager::ParticipantType participantType,
+                         ConversationManager& conversationManager,
+                         KurentoMediaStackAdapter& kurentoMediaStackAdapter)
+: Participant(participantType, conversationManager),
+  mKurentoMediaStackAdapter(kurentoMediaStackAdapter)
 {
 }
 
@@ -33,12 +37,12 @@ KurentoParticipant::~KurentoParticipant()
 /* FIXME Kurento std::shared_ptr<KurentoMediaInterface>
 KurentoParticipant::getMediaInterface()
 {
-   switch(mKurentoConversationManager.getMediaInterfaceMode())
+   switch(mKurentoMediaStackAdapter.getMediaInterfaceMode())
    {
-   case KurentoConversationManager::sipXGlobalMediaInterfaceMode:
-      resip_assert(mKurentoConversationManager.getMediaInterface() != 0);
-      return mKurentoConversationManager.getMediaInterface();
-   case KurentoConversationManager::sipXConversationMediaInterfaceMode:
+   case KurentoMediaStackAdapter::sipXGlobalMediaInterfaceMode:
+      resip_assert(mKurentoMediaStackAdapter.getMediaInterface() != 0);
+      return mKurentoMediaStackAdapter.getMediaInterface();
+   case KurentoMediaStackAdapter::sipXConversationMediaInterfaceMode:
    {
       // Note:  For this mode, the recon code ensures that all conversations a participant 
       //        is added to will share the same media interface, so using the first 

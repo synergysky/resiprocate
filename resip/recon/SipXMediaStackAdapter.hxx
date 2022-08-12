@@ -1,7 +1,5 @@
-#if !defined(KurentoConversationManager_hxx)
-#define KurentoConversationManager_hxx
-
-#include <boost/function.hpp>
+#if !defined(SipXMediaStackAdapter_hxx)
+#define SipXMediaStackAdapter_hxx
 
 #include "BridgeMixer.hxx"
 
@@ -13,13 +11,19 @@
 #include <resip/dum/RedirectHandler.hxx>
 #include <rutil/Mutex.hxx>
 
-#include <media/kurento/KurentoManager.hxx>
-#include <media/kurento/Object.hxx>
-
+#include "RTPPortManager.hxx"
+#include "MediaResourceCache.hxx"
+#include "MediaEvent.hxx"
 #include "HandleTypes.hxx"
 #include "ConversationManager.hxx"
+#include "SipXMediaInterface.hxx"
+#include "MediaStackAdapter.hxx"
+
+#include "reflow/FlowManager.hxx"
 
 #include <memory>
+
+class CpTopologyGraphFactoryImpl;
 
 namespace resip
 {
@@ -32,12 +36,10 @@ class Conversation;
 class Participant;
 class UserAgent;
 class ConversationProfile;
-class KurentoRemoteParticipant;
 class LocalParticipant;
 class MediaResourceParticipant;
 class RemoteParticipant;
 class RemoteParticipantDialogSet;
-class KurentoRemoteParticipantDialogSet;
 
 /**
   This class is one of two main classes of concern to an application
@@ -55,14 +57,19 @@ class KurentoRemoteParticipantDialogSet;
   -Placing and receiving calls
   -Playing audio and/or tones into a conversation
   -Managing local audio properties
+
+  Author: Scott Godin (sgodin AT SipSpectrum DOT com)
 */
 
-class KurentoConversationManager : public ConversationManager
+class SipXMediaStackAdapter : public MediaStackAdapter
 {
 public:
 
+   static constexpr char DEFAULT_FROM_FILE_2_RESOURCE_NAME[] = "FromFile2";
+   static constexpr char DEFAULT_RECORDER_2_RESOURCE_NAME[] = "Recorder2";
+
    /**
-     Note:  Kurentotapi Media Interfaces have a finite number of supported endpoints
+     Note:  sipXtapi Media Interfaces have a finite number of supported endpoints
           that are allowed in each bridge mixer - by default this value is 10
           (1 used for local mic / speaker, 1 for a WAV Player/Recorder and 1 for a 
           Tone Player, leaving 7 remaining for RemoteParticipants - 8 if local audio  
@@ -71,10 +78,10 @@ public:
 
           The limit of 10 is controlled by the preprocessor define 
           DEFAULT_BRIDGE_MAX_IN_OUTPUTS (see
-          http://www.resiprocate.org/Limitations_with_Kurentotapi_media_Integration
+          http://www.resiprocate.org/Limitations_with_sipXtapi_media_Integration
           for more details.
 
-          KurentoGlobalMediaInterfaceMode - uses 1 global Kurentotapi media interface and
+          sipXGlobalMediaInterfaceMode - uses 1 global sipXtapi media interface and
           allows for participants to exist in multiple conversations at the same
           time and have the bridge mixer properly control their mixing.  In this
           mode, there can only be a single MediaParticipant at a time performing
@@ -84,7 +91,7 @@ public:
           players and 2 recorders.  This architecture/mode is appropriate for single 
           user agent devices (ie. sip phones).
 
-          KurentoConversationMediaInterfaceMode - by default uses 1 Kurentotapi media
+          sipXConversationMediaInterfaceMode - by default uses 1 sipXtapi media
           interface per conversation.  If you use createSharedMediaInterfaceConversation
           instead of createConversation then you can specify that 2 (multiple)
           conversations can share the same media interface. This allows participants
@@ -113,24 +120,33 @@ public:
                 exist in multiple conversations then those conversations must have the
                 same media interface.
    */
+   typedef enum
+   {
+      sipXGlobalMediaInterfaceMode,
+      sipXConversationMediaInterfaceMode
+   } MediaInterfaceMode;
 
-   KurentoConversationManager(const resip::Data& kurentoUri);
-   KurentoConversationManager(const resip::Data& kurentoUri, int defaultSampleRate, int maxSampleRate);
-   virtual ~KurentoConversationManager();
+   SipXMediaStackAdapter(ConversationManager& conversationManager, bool localAudioEnabled = true, MediaInterfaceMode mediaInterfaceMode = sipXGlobalMediaInterfaceMode, bool enableExtraPlayAndRecordResources = false);
+   SipXMediaStackAdapter(ConversationManager& conversationManager, bool localAudioEnabled, MediaInterfaceMode mediaInterfaceMode, int defaultSampleRate, int maxSampleRate, bool enableExtraPlayAndRecordResources);
+   virtual ~SipXMediaStackAdapter();
+
+   virtual void conversationManagerReady(ConversationManager* conversationManager) override;
+
+   virtual void shutdown() override;
 
    ///////////////////////////////////////////////////////////////////////
    // Conversation methods  //////////////////////////////////////////////
    ///////////////////////////////////////////////////////////////////////
 
    /**
-     Only applicable if KurentoConversationMediaInterfaceMode is used.
+     Only applicable if sipXConversationMediaInterfaceMode is used.
 
      Create a new empty Conversation to which participants
      can be added.  This new conversation will share the media interface
      from the passed in conversation handle.  This allows participants to be
      moved between these two conversations, or any conversations that share the
      same media interface.  This method will fail (return 0) if this
-     ConversationManager is in KurentoGlobalMediaInterfaceMode.
+     ConversationManager is in sipXGlobalMediaInterfaceMode.
 
      @param autoHoldMode - enum specifying one of the following:
       AutoHoldDisabled - Never auto hold, only hold if holdParticipant API
@@ -149,21 +165,11 @@ public:
 
      @return A handle to the newly created conversation.
    */
-   virtual ConversationHandle createSharedMediaInterfaceConversation(ConversationHandle sharedMediaInterfaceConvHandle, AutoHoldMode autoHoldMode = AutoHoldEnabled);
+   virtual ConversationHandle createSharedMediaInterfaceConversation(ConversationHandle sharedMediaInterfaceConvHandle, ConversationManager::AutoHoldMode autoHoldMode = ConversationManager::AutoHoldEnabled);
 
    ///////////////////////////////////////////////////////////////////////
    // Participant methods  ///////////////////////////////////////////////
    ///////////////////////////////////////////////////////////////////////
-
-   /**
-     Logs a multiline representation of the current state
-     of the mixing matrix.
-
-     @param convHandle - if KurentoGlobalMediaInterfaceMode is used then 0
-                         is the only valid value.  Otherwise you must
-                         specify a specific conversation to view.
-   */
-   virtual void outputBridgeMatrix(ConversationHandle convHandle = 0) override;
 
    /**
      Builds a session capabilties SDPContents based on the passed in ipaddress
@@ -174,12 +180,18 @@ public:
    virtual void buildSessionCapabilities(const resip::Data& ipaddress,
       const std::vector<unsigned int>& codecIds, resip::SdpContents& sessionCaps) override;
 
-
    ///////////////////////////////////////////////////////////////////////
    // Media Related Methods - this may not be the right spot for these - move to LocalParticipant?
    ///////////////////////////////////////////////////////////////////////
 
-   virtual void setKurentoTOSValue(int tos) { mKurentoTOSValue = tos; }
+   virtual void setSpeakerVolume(int volume);
+   virtual void setMicrophoneGain(int gain);
+   virtual void muteMicrophone(bool mute);
+   virtual void enableEchoCancel(bool enable);
+   virtual void enableAutoGainControl(bool enable);
+   virtual void enableNoiseReduction(bool enable);
+   virtual void setSipXTOSValue(int tos) { mSipXTOSValue = tos; }
+   virtual std::shared_ptr<RTPPortManager> getRTPPortManager() { return mRTPPortManager; }
 
    virtual Conversation *createConversationInstance(ConversationHandle handle,
       RelatedConversationSet* relatedConversationSet,  // Pass NULL to create new RelatedConversationSet
@@ -193,9 +205,11 @@ public:
          ConversationManager::ParticipantForkSelectMode forkSelectMode = ConversationManager::ForkSelectAutomatic,
          std::shared_ptr<ConversationProfile> conversationProfile = nullptr) override;
 
+   MediaInterfaceMode getMediaInterfaceMode() const { return mMediaInterfaceMode; }
+
    virtual bool supportsMultipleMediaInterfaces() override;
    virtual bool canConversationsShareParticipants(Conversation* conversation1, Conversation* conversation2) override;
-   virtual bool supportsLocalAudio() override { return false; }
+   virtual bool supportsLocalAudio() override { return mLocalAudioEnabled; }
    virtual bool extraPlayAndRecordResourcesEnabled() { return mEnableExtraPlayAndRecordResources; }
 
 protected:
@@ -212,30 +226,31 @@ private:
    // Note:  In general the following fns are not thread safe and must be called from dum process 
    //        loop only
    friend class Conversation;
-   friend class KurentoConversation;
+   friend class SipXConversation;
    friend class OutputBridgeMixWeightsCmd;
 
    friend class Participant;
-   friend class KurentoParticipant;
+   friend class SipXParticipant;
 
    friend class RemoteParticipant;
-   friend class KurentoRemoteParticipant;
+   friend class SipXRemoteParticipant;
    friend class UserAgent;
 
    friend class DtmfEvent;
    friend class MediaEvent;
 
    friend class RemoteParticipantDialogSet;
-   friend class KurentoRemoteParticipantDialogSet;
+   friend class SipXRemoteParticipantDialogSet;
    friend class MediaResourceParticipant;
    friend class LocalParticipant;
    friend class BridgeMixer;
-   friend class KurentoMediaInterface;
+   friend class SipXMediaInterface;
 
    virtual void process() override;
 
    virtual void setRTCPEventLoggingHandler(std::shared_ptr<flowmanager::RTCPEventLoggingHandler> h) override;
    virtual void initializeDtlsFactory(const resip::Data& defaultAoR) override;
+   flowmanager::FlowManager& getFlowManager() { return mFlowManager; }
 
    friend class OutputBridgeMixWeightsCmd;
    void outputBridgeMatrixImpl(ConversationHandle convHandle = 0) override;
@@ -259,18 +274,26 @@ private:
    friend class RedirectToParticipantCmd;
    friend class HoldParticipantCmd;
 
+   bool mLocalAudioEnabled;
+   MediaInterfaceMode mMediaInterfaceMode;
    bool mEnableExtraPlayAndRecordResources;
 
-   // Kurento Media related members
-   resip::Data mKurentoUri;
-   kurento::KurentoManager mKurentoManager;
-   kurento::KurentoConnection::ptr mKurentoConnection; // FIXME - make sure it is valid whenever it is used
-   std::shared_ptr<kurento::MediaPipeline> mPipeline;
-   int mKurentoTOSValue;  // FIXME Kurento - need to pass to Kurento, maybe move to superclass too
+   std::shared_ptr<RTPPortManager> mRTPPortManager;
+
+   // FlowManager Instance
+   flowmanager::FlowManager mFlowManager;
+
+   // sipX Media related members
+   void createMediaInterfaceAndMixer(bool giveFocus,
+                                     std::shared_ptr<SipXMediaInterface>& mediaInterface,
+                                     std::shared_ptr<BridgeMixer>& bridgeMixer);
+   std::shared_ptr<SipXMediaInterface> getMediaInterface() const { resip_assert(mMediaInterface.get()); return mMediaInterface; }
+   CpTopologyGraphFactoryImpl* getMediaInterfaceFactory() { return mMediaFactory; }
+   CpTopologyGraphFactoryImpl* mMediaFactory;
+   std::shared_ptr<SipXMediaInterface> mMediaInterface;
+   int mSipXTOSValue;
 
    bool addExtraPlayAndRecordResourcesToTopology();
-
-   virtual void configureRemoteParticipant(KurentoRemoteParticipant *rp) = 0;
 };
 
 }

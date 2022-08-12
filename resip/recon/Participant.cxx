@@ -3,6 +3,7 @@
 #include "Participant.hxx"
 #include "Conversation.hxx"
 #include "UserAgent.hxx"
+#include "MediaStackAdapter.hxx"
 
 #include <rutil/Log.hxx>
 #include <rutil/Logger.hxx>
@@ -14,16 +15,20 @@ using namespace std;
 #define RESIPROCATE_SUBSYSTEM ReconSubsystem::RECON
 
 Participant::Participant(ParticipantHandle partHandle,
+                         ConversationManager::ParticipantType participantType,
                          ConversationManager& conversationManager)
 : mHandle(partHandle),
+  mType(participantType),
   mConversationManager(conversationManager)
 {
    mConversationManager.registerParticipant(this);
    //InfoLog(<< "Participant created, handle=" << mHandle);
 }
 
-Participant::Participant(ConversationManager& conversationManager)
+Participant::Participant(ConversationManager::ParticipantType participantType,
+                         ConversationManager& conversationManager)
 : mHandle(0),
+  mType(participantType),
   mConversationManager(conversationManager)
 {
    setHandle(mConversationManager.getNewParticipantHandle());
@@ -114,7 +119,7 @@ Participant::replaceWithParticipant(Participant* replacingParticipant)
    }
    mConversations.clear();  // Clear so that we won't remove replaced reference from Conversation 
    mHandle = 0;             // Set to 0 so that we won't remove replaced reference from ConversationManager
-   resip_assert((!mConversationManager.supportsMultipleMediaInterfaces()) ||  // We are either running in sipXGlobalMediaInterfaceMode
+   resip_assert((!mConversationManager.getMediaStackAdapter().supportsMultipleMediaInterfaces()) ||  // We are either running in sipXGlobalMediaInterfaceMode
                 firstAssociatedConversation != 0);                            // or we are running in sipXConversationMediaInterfaceMode and must have belonged to a conversation
    applyBridgeMixWeights(firstAssociatedConversation);  // Ensure we remove ourselves from the bridge mix matrix
 }
@@ -122,12 +127,11 @@ Participant::replaceWithParticipant(Participant* replacingParticipant)
 void
 Participant::applyBridgeMixWeights()
 {
-   return; // FIXME Kurento
    // Only need to do work on the bridge mixer if we are using it (ie: portOnBridge != -1)
    if (getConnectionPortOnBridge() != -1)
    {
       BridgeMixer* mixer = 0;
-      if (!mConversationManager.supportsMultipleMediaInterfaces())
+      if (!mConversationManager.getMediaStackAdapter().supportsMultipleMediaInterfaces())
       {
          resip_assert(mConversationManager.getBridgeMixer() != 0);
          mixer = mConversationManager.getBridgeMixer().get();
@@ -157,8 +161,7 @@ void
 Participant::applyBridgeMixWeights(Conversation* removedConversation)
 {
    BridgeMixer* mixer=0;
-   return; // FIXME Kurento
-   if(!mConversationManager.supportsMultipleMediaInterfaces())
+   if(!mConversationManager.getMediaStackAdapter().supportsMultipleMediaInterfaces())
    {
       resip_assert(mConversationManager.getBridgeMixer() != 0);
       mixer = mConversationManager.getBridgeMixer().get();

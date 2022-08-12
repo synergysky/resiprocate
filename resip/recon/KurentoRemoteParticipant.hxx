@@ -35,7 +35,7 @@ class SipMessage;
 
 namespace recon
 {
-class KurentoConversationManager;
+class KurentoMediaStackAdapter;
 
 /**
   This class represent a remote participant.  A remote participant is a 
@@ -47,22 +47,27 @@ class KurentoRemoteParticipant : public virtual RemoteParticipant, public virtua
 {
 public:
    KurentoRemoteParticipant(ParticipantHandle partHandle,   // UAC
-                     KurentoConversationManager& conversationManager,
+                     ConversationManager& conversationManager,
+                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
-   KurentoRemoteParticipant(KurentoConversationManager& conversationManager,            // UAS or forked leg
+   KurentoRemoteParticipant(ConversationManager& conversationManager,            // UAS or forked leg
+                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
    virtual ~KurentoRemoteParticipant();
 
-   virtual void buildSdpOffer(bool holdSdp, ContinuationSdpReady c);
+   virtual void buildSdpOffer(bool holdSdp, CallbackSdpReady sdpReady, bool preferExistingSdp = false);
 
    virtual int getConnectionPortOnBridge();
    virtual bool hasInput() { return true; }
    virtual bool hasOutput() { return true; }
    virtual int getMediaConnectionId();
+
+   virtual void applyBridgeMixWeights() override;
+   virtual void applyBridgeMixWeights(Conversation* removedConversation) override;
 
    virtual void adjustRTPStreams(bool sendingOffer=false);
 
@@ -82,15 +87,18 @@ public:
 
    virtual std::string replaceParameter(std::string fmtpString, std::string parameterName, std::string replaceValue, int indexOffset = 0);
    virtual bool onMediaControlEvent(resip::MediaControlContents::MediaControl& mediaControl);
+   virtual bool onTrickleIce(resip::TrickleIceContents& trickleIce) override;
 
 protected:
    virtual bool mediaStackPortAvailable();
 
    virtual KurentoRemoteParticipantDialogSet& getKurentoDialogSet() { return dynamic_cast<KurentoRemoteParticipantDialogSet&>(getDialogSet()); };
 
+   virtual bool holdPreferExistingSdp() override { return true; };
+
 private:
    kurento::BaseRtpEndpoint* newEndpoint();
-   resip::AsyncBool buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) override;
+   virtual void buildSdpAnswer(const resip::SdpContents& offer, CallbackSdpReady sdpReady) override;
 
    std::shared_ptr<kurento::BaseRtpEndpoint> mEndpoint;
    volatile bool mIceGatheringDone;  // FIXME Kurento use a concurrency primitive, e.g. condition_variable
@@ -100,6 +108,8 @@ public: // FIXME
    bool mSipRtpEndpoint;
    bool mReuseSdpAnswer;
    bool mWSAcceptsKeyframeRequests;
+   resip::SdpContents* mLastRemoteSdp;
+   bool mWaitingAnswer;
 };
 
 }

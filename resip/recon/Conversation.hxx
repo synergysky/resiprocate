@@ -4,10 +4,6 @@
 #include "ConversationManager.hxx"
 #include "ConversationParticipantAssignment.hxx"
 
-namespace reconserver
-{
-class MyConversationManager;  // FIXME Kurento
-}
 namespace recon
 {
 class Participant;
@@ -39,7 +35,10 @@ protected:
                 ConversationManager& conversationManager,
                 RelatedConversationSet* relatedConversationSet,  // Pass NULL to create new RelatedConversationSet 
                 ConversationHandle sharedMediaInterfaceConvHandle,
-                ConversationManager::AutoHoldMode autoHoldMode);
+                ConversationManager::AutoHoldMode autoHoldMode,
+                unsigned int maxParticipants = 0);
+   virtual void onParticipantAdded(Participant* participant) = 0;
+   virtual void onParticipantRemoved(Participant* participant) = 0;
 public:
    virtual ~Conversation();
 
@@ -62,8 +61,14 @@ public:
    void destroy();
 
    ConversationHandle getHandle() { return mHandle; }
+   void setMaxParticipants(unsigned int maxParticipants) { mMaxParticipants = maxParticipants; };
+   unsigned int getMaxParticipants() const { return mMaxParticipants; };
+
+   virtual void confirmParticipant(Participant* participant) {};
 
 protected:
+   std::shared_ptr<resip::ConfigParse> getConfig() { return mConversationManager.getConfig(); };
+
    friend class Participant;
    friend class SipXParticipant;
    friend class LocalParticipant;
@@ -89,8 +94,8 @@ protected:
    // sipX Media related members
    // Note: these are only set here if sipXConversationMediaInterfaceMode is used
    friend class ConversationManager;
-   friend class SipXConversationManager;
-   friend class KurentoConversationManager;
+   friend class SipXMediaStackAdapter;
+   friend class KurentoMediaStackAdapter;
    BridgeMixer* getBridgeMixer() noexcept { return mBridgeMixer.get(); }
    std::shared_ptr<BridgeMixer> getBridgeMixerShared() { return mBridgeMixer; }
    virtual void setBridgeMixer(std::shared_ptr<BridgeMixer> mixer) { mBridgeMixer = mixer; }
@@ -103,7 +108,6 @@ private:
    RelatedConversationSet *mRelatedConversationSet;
 
    ParticipantMap mParticipants;
-   friend class reconserver::MyConversationManager; // FIXME Kurento
    Participant* getParticipant(ParticipantHandle partHandle);
    bool mDestroying;
    unsigned int mNumLocalParticipants;
@@ -111,6 +115,7 @@ private:
    unsigned int mNumRemoteIMParticipants;
    unsigned int mNumMediaParticipants;
    ConversationManager::AutoHoldMode mAutoHoldMode;
+   unsigned int mMaxParticipants;
 
    // sipX Media related members
    // Note: these are only set here if sipXConversationMediaInterfaceMode is used

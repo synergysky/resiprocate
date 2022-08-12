@@ -41,11 +41,6 @@ int _kbhit() {
 #include "resip/recon/UserAgent.hxx"
 #include "AppSubsystem.hxx"
 
-#ifdef USE_SIPXTAPI
-#include <resip/recon/SipXHelper.hxx>
-#include <os/OsSysLog.h>
-#endif
-
 #include "reConServerConfig.hxx"
 #include "reConServer.hxx"
 #include "MyMessageDecorator.hxx"
@@ -62,6 +57,12 @@ int _kbhit() {
 
 #include <resip/stack/HEPSipMessageLoggingHandler.hxx>
 #include <reflow/HEPRTCPEventLoggingHandler.hxx>
+
+#ifdef PREFER_SIPXTAPI
+#include <resip/recon/SipXHelper.hxx>
+#include <os/OsSysLog.h>
+#include <resip/recon/SipXMediaStackAdapter.hxx>
+#endif
 
 using namespace reconserver;
 using namespace recon;
@@ -126,6 +127,10 @@ void ReConServerProcess::processCommandLine(Data& commandline, MyConversationMan
          pb.data(arg[currentArg++], start);
       }
    }
+
+#ifdef PREFER_SIPXTAPI
+   SipXMediaStackAdapter& mediaStackAdapter = static_cast<SipXMediaStackAdapter&>(myConversationManager.getMediaStackAdapter());
+#endif
 
    // Process commands
    if(isEqualNoCase(command, "quit") || isEqualNoCase(command, "q") || isEqualNoCase(command, "exit"))
@@ -391,42 +396,42 @@ void ReConServerProcess::processCommandLine(Data& commandline, MyConversationMan
    if(isEqualNoCase(command, "volume") || isEqualNoCase(command, "sv"))
    {
       unsigned long volume = arg[0].convertUnsignedLong();
-      myConversationManager.setSpeakerVolume(volume);
+      mediaStackAdapter.setSpeakerVolume(volume);
       InfoLog( << "Speaker volume set to " << volume);
       return;
    }
    if(isEqualNoCase(command, "gain") || isEqualNoCase(command, "sg"))
    {
       unsigned long gain = arg[0].convertUnsignedLong();
-      myConversationManager.setMicrophoneGain(gain);
+      mediaStackAdapter.setMicrophoneGain(gain);
       InfoLog( << "Microphone gain set to " << gain);
       return;
    }
    if(isEqualNoCase(command, "mute") || isEqualNoCase(command, "mm"))
    {
       bool enable = arg[0].convertUnsignedLong() != 0;
-      myConversationManager.muteMicrophone(enable);
+      mediaStackAdapter.muteMicrophone(enable);
       InfoLog( << "Microphone mute " << (enable ? "enabled" : "disabled"));
       return;
    }
    if(isEqualNoCase(command, "echocanel") || isEqualNoCase(command, "aec"))
    {
       bool enable = arg[0].convertUnsignedLong() != 0;
-      myConversationManager.enableEchoCancel(enable);
+      mediaStackAdapter.enableEchoCancel(enable);
       InfoLog( << "Echo cancellation " << (enable ? "enabled" : "disabled"));
       return;
    }
    if(isEqualNoCase(command, "autogain") || isEqualNoCase(command, "agc"))
    {
       bool enable = arg[0].convertUnsignedLong() != 0;
-      myConversationManager.enableAutoGainControl(enable);
+      mediaStackAdapter.enableAutoGainControl(enable);
       InfoLog( << "Automatic gain control " << (enable ? "enabled" : "disabled"));
       return;
    }
    if(isEqualNoCase(command, "noisereduction") || isEqualNoCase(command, "nr"))
    {
       bool enable = arg[0].convertUnsignedLong() != 0;
-      myConversationManager.enableNoiseReduction(enable);
+      mediaStackAdapter.enableNoiseReduction(enable);
       return;
    }
 #endif
@@ -476,6 +481,7 @@ void ReConServerProcess::processCommandLine(Data& commandline, MyConversationMan
       InfoLog( << "Autoanswer " << (enable ? "enabled" : "disabled"));
       return;
    }
+#ifdef PREFER_SIPXTAPI
    if(isEqualNoCase(command, "setcodecs") || isEqualNoCase(command, "sc"))
    {
       Data codecId;
@@ -498,10 +504,11 @@ void ReConServerProcess::processCommandLine(Data& commandline, MyConversationMan
          Data ipAddress(conversationProfile->sessionCaps().session().connection().getAddress());
          // Note:  Technically modifying the conversation profile at runtime like this is not
          //        thread safe.  But it should be fine for this test consoles purposes.
-         myConversationManager.buildSessionCapabilities(ipAddress, idList, conversationProfile->sessionCaps());
+         mediaStackAdapter.buildSessionCapabilities(ipAddress, idList, conversationProfile->sessionCaps());
       }
       return;
    }
+#endif
    if(isEqualNoCase(command, "securemedia") || isEqualNoCase(command, "sm"))
    {
       ConversationProfile::SecureMediaMode secureMediaMode = ConversationProfile::NoSecureMedia;
@@ -819,8 +826,8 @@ ReConServerProcess::main (int argc, char** argv)
    Data runAsUser = reConServerConfig.getConfigData("RunAsUser", "", true);
    Data runAsGroup = reConServerConfig.getConfigData("RunAsGroup", "", true);
 #ifdef USE_SIPXTAPI
-   SipXConversationManager::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
-      ? SipXConversationManager::sipXGlobalMediaInterfaceMode : SipXConversationManager::sipXConversationMediaInterfaceMode;
+   SipXMediaStackAdapter::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
+      ? SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode : SipXMediaStackAdapter::sipXConversationMediaInterfaceMode;
 #endif
    unsigned int defaultSampleRate = reConServerConfig.getConfigUnsignedLong("DefaultSampleRate", 8000);
    unsigned int maximumSampleRate = reConServerConfig.getConfigUnsignedLong("MaximumSampleRate", 8000);
@@ -859,7 +866,7 @@ ReConServerProcess::main (int argc, char** argv)
 
    Log::initialize(reConServerConfig, argv[0]);
 
-#ifdef USE_SIPXTAPI
+#ifdef PREFER_SIPXTAPI
    // Setup logging for the sipX media stack
    // It is bridged to the reSIProcate logger
    SipXHelper::setupLoggingBridge("reConServer");
@@ -896,7 +903,7 @@ ReConServerProcess::main (int argc, char** argv)
    InfoLog( << "  Local Audio Enabled = " << (localAudioEnabled ? "true" : "false"));
 #ifdef USE_SIPXTAPI
    InfoLog( << "  Global Media Interface = " <<
-      ((mediaInterfaceMode == SipXConversationManager::sipXGlobalMediaInterfaceMode) ? "true" : "false"));
+      ((mediaInterfaceMode == SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode) ? "true" : "false"));
 #endif
    InfoLog( << "  Default sample rate = " << defaultSampleRate);
    InfoLog( << "  Maximum sample rate = " << maximumSampleRate);
@@ -1286,6 +1293,14 @@ ReConServerProcess::main (int argc, char** argv)
    InteropHelper::setRportEnabled(addViaRport);
    conversationProfile->setRportEnabled(addViaRport);
 
+   // FIXME - we may need to do more to support this, alternatively, maybe we
+   // just do everything from behind a proxy that does it for us
+   InteropHelper::setOutboundSupported(reConServerConfig.getConfigBool("DisableOutbound", false) ? false : true);
+   InteropHelper::setRRTokenHackEnabled(reConServerConfig.getConfigBool("EnableFlowTokens", false));
+   InteropHelper::setAllowInboundFlowTokensForNonDirectClients(reConServerConfig.getConfigBool("AllowInboundFlowTokensForNonDirectClients", false));
+   InteropHelper::setAssumeFirstHopSupportsOutboundEnabled(reConServerConfig.getConfigBool("AssumeFirstHopSupportsOutbound", false));
+   InteropHelper::setAssumeFirstHopSupportsFlowTokensEnabled(reConServerConfig.getConfigBool("AssumeFirstHopSupportsFlowTokens", false));
+
    // Secure Media Settings
    conversationProfile->secureMediaMode() = secureMediaMode;
    conversationProfile->secureMediaRequired() = secureMediaRequired;
@@ -1303,11 +1318,7 @@ ReConServerProcess::main (int argc, char** argv)
       switch(application)
       {
          case ReConServerConfig::None:
-#ifdef PREFER_KURENTO
-            mConversationManager = std::unique_ptr<MyConversationManager>(new MyConversationManager(reConServerConfig, kurentoUri, autoAnswerEnabled));
-#else
-            mConversationManager = std::unique_ptr<MyConversationManager>(new MyConversationManager(localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maximumSampleRate, autoAnswerEnabled));
-#endif
+            mConversationManager = std::unique_ptr<MyConversationManager>(new MyConversationManager(reConServerConfig, localAudioEnabled, defaultSampleRate, maximumSampleRate, autoAnswerEnabled));
             break;
          case ReConServerConfig::B2BUA:
             {
@@ -1315,19 +1326,18 @@ ReConServerProcess::main (int argc, char** argv)
                {
                   mCDRFile = std::make_shared<CDRFile>(cdrLogFilename);
                }
-#ifdef PREFER_KURENTO
-               b2BCallManager = new B2BCallManager(kurentoUri, reConServerConfig, mCDRFile);
-#else
-               b2BCallManager = new B2BCallManager(mediaInterfaceMode, defaultSampleRate, maximumSampleRate, reConServerConfig, mCDRFile);
-#endif
+               b2BCallManager = new B2BCallManager(reConServerConfig, defaultSampleRate, maximumSampleRate, mCDRFile);
                mConversationManager.reset(b2BCallManager);
             }
             break;
          default:
-            assert(0);
+            resip_assert(0);
       }
       mUserAgent = std::make_shared<MyUserAgent>(reConServerConfig, mConversationManager.get(), profile);
-      mConversationManager->buildSessionCapabilities(address, _codecIds, conversationProfile->sessionCaps());
+#ifdef PREFER_SIPXTAPI
+      SipXMediaStackAdapter& mediaStackAdapter = static_cast<SipXMediaStackAdapter&>(mConversationManager->getMediaStackAdapter());
+      mediaStackAdapter.buildSessionCapabilities(address, _codecIds, conversationProfile->sessionCaps());
+#endif
       mUserAgent->addConversationProfile(conversationProfile);
 
       if(application == ReConServerConfig::B2BUA)
@@ -1351,7 +1361,9 @@ ReConServerProcess::main (int argc, char** argv)
             internalProfile->secureMediaMode() = reConServerConfig.getConfigSecureMediaMode("B2BUAInternalSecureMediaMode", secureMediaMode);
             internalProfile->setDefaultFrom(uri);
             internalProfile->setDigestCredential(uri.uri().host(), uri.uri().user(), password);
-            mConversationManager->buildSessionCapabilities(internalMediaAddress, _codecIds, internalProfile->sessionCaps());
+#ifdef PREFER_SIPXTAPI
+            mediaStackAdapter.buildSessionCapabilities(internalMediaAddress, _codecIds, internalProfile->sessionCaps());
+#endif
             mUserAgent->addConversationProfile(internalProfile, false);
          }
          else
@@ -1381,7 +1393,7 @@ ReConServerProcess::main (int argc, char** argv)
       mUserAgent->shutdown();
    }
    InfoLog(<< "reConServer is shutdown.");
-#ifdef USE_SIPXTAPI
+#ifdef PREFER_SIPXTAPI
    OsSysLog::shutdown();
 #endif
    ::sleepSeconds(2);

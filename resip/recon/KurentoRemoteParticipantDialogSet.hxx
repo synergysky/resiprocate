@@ -13,7 +13,7 @@
 #include "rutil/MediaConstants.hxx"
 #include "reTurn/StunTuple.hxx"
 
-#include "KurentoConversationManager.hxx"
+#include "KurentoMediaStackAdapter.hxx"
 #include "ConversationProfile.hxx"
 #include "Participant.hxx"
 #include "RemoteParticipantDialogSet.hxx"
@@ -39,7 +39,8 @@ class KurentoRemoteParticipant;
 class KurentoRemoteParticipantDialogSet : public RemoteParticipantDialogSet
 {
 public:
-   KurentoRemoteParticipantDialogSet(KurentoConversationManager& kurentoConversationManager,
+   KurentoRemoteParticipantDialogSet(ConversationManager& conversationManager,
+                              KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                               ConversationManager::ParticipantForkSelectMode forkSelectMode = ConversationManager::ForkSelectAutomatic,
                               std::shared_ptr<ConversationProfile> conversationProfile = nullptr);
 
@@ -77,7 +78,7 @@ protected:
    virtual void fixUpSdp(resip::SdpContents* sdp);
 
 private:
-   KurentoConversationManager& mKurentoConversationManager;
+   KurentoMediaStackAdapter& mKurentoMediaStackAdapter;
    unsigned int mLocalRTPPort;
    bool mAllocateLocalRTPPortFailed;
    bool mPeerExpectsSAVPF;

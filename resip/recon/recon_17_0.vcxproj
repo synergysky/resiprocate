@@ -175,6 +175,12 @@
     <ClCompile Include="DtmfEvent.cxx" />
     <ClCompile Include="FlowManagerSipXSocket.cxx" />
     <ClCompile Include="IMParticipantBase.cxx" />
+    <ClCompile Include="KurentoBridgeMixer.cxx" />
+    <ClCompile Include="KurentoConversation.cxx" />
+    <ClCompile Include="KurentoMediaStackAdapter.cxx" />
+    <ClCompile Include="KurentoParticipant.cxx" />
+    <ClCompile Include="KurentoRemoteParticipant.cxx" />
+    <ClCompile Include="KurentoRemoteParticipantDialogSet.cxx" />
     <ClCompile Include="RemoteIMSessionParticipant.cxx" />
     <ClCompile Include="RemoteIMSessionParticipantDialogSet.cxx" />
     <ClCompile Include="LocalParticipant.cxx" />
@@ -183,6 +189,7 @@
     <ClCompile Include="SipXMediaInterface.cxx" />
     <ClCompile Include="MediaResourceCache.cxx" />
     <ClCompile Include="MediaResourceParticipant.cxx" />
+    <ClCompile Include="MediaStackAdapter.cxx" />
     <ClCompile Include="MediaStreamEvent.cxx" />
     <ClCompile Include="Participant.cxx" />
     <ClCompile Include="ReconSubsystem.cxx" />
@@ -192,7 +199,7 @@
     <ClCompile Include="RTPPortManager.cxx" />
     <ClCompile Include="SipXBridgeMixer.cxx" />
     <ClCompile Include="SipXConversation.cxx" />
-    <ClCompile Include="SipXConversationManager.cxx" />
+    <ClCompile Include="SipXMediaStackAdapter.cxx" />
     <ClCompile Include="SipXHelper.cxx" />
     <ClCompile Include="SipXParticipant.cxx" />
     <ClCompile Include="SipXMediaResourceParticipant.cxx" />
@@ -224,6 +231,12 @@
     <ClInclude Include="DtmfEvent.hxx" />
     <ClInclude Include="FlowManagerSipXSocket.hxx" />
     <ClInclude Include="IMParticipantBase.hxx" />
+    <ClInclude Include="KurentoBridgeMixer.hxx" />
+    <ClInclude Include="KurentoConversation.hxx" />
+    <ClInclude Include="KurentoMediaStackAdapter.hxx" />
+    <ClInclude Include="KurentoParticipant.hxx" />
+    <ClInclude Include="KurentoRemoteParticipantDialogSet.hxx" />
+    <ClInclude Include="KurentoRemoteParticipant.hxx" />
     <ClInclude Include="RemoteIMSessionParticipant.hxx" />
     <ClInclude Include="RemoteIMSessionParticipantDialogSet.hxx" />
     <ClInclude Include="LocalParticipant.hxx" />
@@ -232,6 +245,7 @@
     <ClInclude Include="SipXMediaInterface.hxx" />
     <ClInclude Include="MediaResourceCache.hxx" />
     <ClInclude Include="MediaResourceParticipant.hxx" />
+    <ClInclude Include="MediaStackAdapter.hxx" />
     <ClInclude Include="MediaStreamEvent.hxx" />
     <ClInclude Include="Participant.hxx" />
     <ClInclude Include="ReconSubsystem.hxx" />
@@ -241,7 +255,7 @@
     <ClInclude Include="RTPPortManager.hxx" />
     <ClInclude Include="SipXBridgeMixer.hxx" />
     <ClInclude Include="SipXConversation.hxx" />
-    <ClInclude Include="SipXConversationManager.hxx" />
+    <ClInclude Include="SipXMediaStackAdapter.hxx" />
     <ClInclude Include="SipXHelper.hxx" />
     <ClInclude Include="SipXParticipant.hxx" />
     <ClInclude Include="SipXMediaResourceParticipant.hxx" />

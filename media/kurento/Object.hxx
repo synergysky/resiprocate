@@ -92,7 +92,6 @@ class MediaElement : public Object
 
       void connect(ContinuationVoid c, MediaElement& element);
       void disconnect(ContinuationVoid c, MediaElement& element);
-      void disconnect(ContinuationVoid c);
 
       void addErrorListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
       void addConnectionStateChangedListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
@@ -107,10 +106,7 @@ class MediaElement : public Object
       virtual void create(ContinuationVoid c, const json::Object& extraPparams);
 
    private:
-      virtual void setConnectedTo(const std::string& connectedTo) { mConnectedTo = connectedTo; };
-
       std::shared_ptr<MediaPipeline> mMediaPipeline;
-      std::string mConnectedTo;
 };
 
 class PassThroughElement : public MediaElement
@@ -216,7 +212,7 @@ class WebRtcEndpoint : public BaseRtpEndpoint
       virtual ~WebRtcEndpoint();
 
       void gatherCandidates(ContinuationVoid c);
-      //void addIceCandidate(ContinuationVoid c, const std::string& candidate);
+      void addIceCandidate(ContinuationVoid c, const std::string& candidate, const std::string& mid, unsigned int lineIndex);
 
       void addOnIceCandidateFoundListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
       void addOnIceGatheringDoneListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
