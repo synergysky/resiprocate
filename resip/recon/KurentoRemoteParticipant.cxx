@@ -11,6 +11,7 @@
 #include "UserAgent.hxx"
 #include "DtmfEvent.hxx"
 #include "ReconSubsystem.hxx"
+#include "resip/stack/Connection.hxx"
 
 #include <rutil/Log.hxx>
 #include <rutil/Logger.hxx>
@@ -307,6 +308,11 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          for(;it != _answer->session().media().end(); it++)
          {
              SdpContents::Session::Medium& m = *it;
+
+             SdpContents::Session::Connection* connection = new SdpContents::Session::Connection(SdpContents::IP4, "20.224.161.198");
+             if (isWebRTC){
+                 m.setConnection(*connection);
+             }
 
             if (m.name() == Data("video") && !videobw)
             {
