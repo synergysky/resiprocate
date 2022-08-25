@@ -225,6 +225,14 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
    std::shared_ptr<SdpContents> offerMangled = std::make_shared<SdpContents>(offer);
    SdpContents::Session::MediumContainer::iterator it = offerMangled->session().media().begin();
+    for(;it != offerMangled->session().media().end(); it++) {
+        SdpContents::Session::Medium& m = *it;
+
+        SdpContents::Session::Connection* connection = new SdpContents::Session::Connection(SdpContents::IP4, "20.224.161.198");
+        if (offerMangled->session().isWebRTC()){
+            m.setConnection(*connection);
+        }
+    }
    /*if(offerMangled->session().media().size() > 2)
    {
        std::advance(it, 2);
@@ -308,11 +316,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          for(;it != _answer->session().media().end(); it++)
          {
              SdpContents::Session::Medium& m = *it;
-
-             SdpContents::Session::Connection* connection = new SdpContents::Session::Connection(SdpContents::IP4, "20.224.161.198");
-             if (isWebRTC){
-                 m.setConnection(*connection);
-             }
 
             if (m.name() == Data("video") && !videobw)
             {
