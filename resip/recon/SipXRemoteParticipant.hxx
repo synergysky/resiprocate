@@ -39,7 +39,7 @@ class SdpMediaLine;
 
 namespace recon
 {
-class SipXConversationManager;
+class SipXMediaStackAdapter;
 
 /**
   This class represent a remote participant.  A remote participant is a 
@@ -54,19 +54,19 @@ class SipXRemoteParticipant : public virtual RemoteParticipant, public virtual S
 public:
    SipXRemoteParticipant(ParticipantHandle partHandle,   // UAC
                      ConversationManager& conversationManager,
-                     SipXConversationManager& sipXConversationManager,
+                     SipXMediaStackAdapter& sipXMediaStackAdapter,
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
    SipXRemoteParticipant(ConversationManager& conversationManager,
-                     SipXConversationManager& sipXConversationManager,            // UAS or forked leg
+                     SipXMediaStackAdapter& sipXMediaStackAdapter,            // UAS or forked leg
                      resip::DialogUsageManager& dum,
                      RemoteParticipantDialogSet& remoteParticipantDialogSet);
 
    virtual ~SipXRemoteParticipant();
 
    virtual unsigned int getLocalRTPPort();
-   virtual void buildSdpOffer(bool holdSdp, ContinuationSdpReady c);
+   virtual void buildSdpOffer(bool holdSdp, CallbackSdpReady sdpReady, bool preferExistingSdp = false);
 
    virtual int getConnectionPortOnBridge();
    virtual bool hasInput() { return true; }
@@ -83,7 +83,7 @@ protected:
 
 private:
    bool answerMediaLine(resip::SdpContents::Session::Medium& mediaSessionCaps, const sdpcontainer::SdpMediaLine& sdpMediaLine, resip::SdpContents& answer, bool potential);
-   resip::AsyncBool buildSdpAnswer(const resip::SdpContents& offer, ContinuationSdpReady c) override;
+   virtual void buildSdpAnswer(const resip::SdpContents& offer, CallbackSdpReady sdpReady) override;
 };
 
 }

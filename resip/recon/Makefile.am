@@ -68,7 +68,7 @@ librecon_la_SOURCES = BridgeMixer.cxx \
 
 if USE_SIPXTAPI
 librecon_la_SOURCES += FlowManagerSipXSocket.cxx \
-        SipXConversationManager.cxx \
+        SipXMediaStackAdapter.cxx \
         SipXMediaInterface.cxx \
         SipXConversation.cxx \
         SipXBridgeMixer.cxx \
@@ -89,7 +89,7 @@ endif
 if USE_KURENTO
 librecon_la_SOURCES += KurentoBridgeMixer.cxx \
         KurentoConversation.cxx \
-        KurentoConversationManager.cxx \
+        KurentoMediaStackAdapter.cxx \
         KurentoParticipant.cxx \
         KurentoRemoteParticipant.cxx \
         KurentoRemoteParticipantDialogSet.cxx
@@ -138,7 +138,7 @@ nobase_reconinclude_HEADERS += sdp/SdpMediaLine.hxx \
         sdp/SdpCandidatePair.hxx \
         sdp/SdpCandidate.hxx \
         sdp/Sdp.hxx \
-        SipXConversationManager.hxx \
+        SipXMediaStackAdapter.hxx \
         SipXMediaInterface.hxx \
         SipXConversation.hxx \
         SipXBridgeMixer.hxx \
@@ -153,7 +153,7 @@ endif
 if USE_KURENTO
 nobase_reconinclude_HEADERS += KurentoBridgeMixer.hxx \
         KurentoConversation.hxx \
-        KurentoConversationManager.hxx \
+        KurentoMediaStackAdapter.hxx \
         KurentoParticipant.hxx \
         KurentoRemoteParticipantDialogSet.hxx \
         KurentoRemoteParticipant.hxx

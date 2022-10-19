@@ -193,7 +193,7 @@
     <ClCompile Include="RTPPortManager.cxx" />
     <ClCompile Include="SipXBridgeMixer.cxx" />
     <ClCompile Include="SipXConversation.cxx" />
-    <ClCompile Include="SipXConversationManager.cxx" />
+    <ClCompile Include="SipXMediaStackAdapter.cxx" />
     <ClCompile Include="SipXHelper.cxx" />
     <ClCompile Include="SipXParticipant.cxx" />
     <ClCompile Include="SipXMediaResourceParticipant.cxx" />
@@ -224,6 +224,12 @@
     <ClInclude Include="DefaultDialogSet.hxx" />
     <ClInclude Include="DtmfEvent.hxx" />
     <ClInclude Include="FlowManagerSipXSocket.hxx" />
+    <ClInclude Include="KurentoBridgeMixer.hxx" />
+    <ClInclude Include="KurentoConversation.hxx" />
+    <ClInclude Include="KurentoMediaStackAdapter.hxx" />
+    <ClInclude Include="KurentoParticipant.hxx" />
+    <ClInclude Include="KurentoRemoteParticipantDialogSet.hxx" />
+    <ClInclude Include="KurentoRemoteParticipant.hxx" />
     <ClInclude Include="IMParticipantBase.hxx" />
     <ClInclude Include="RemoteIMSessionParticipant.hxx" />
     <ClInclude Include="RemoteIMSessionParticipantDialogSet.hxx" />
@@ -243,7 +249,7 @@
     <ClInclude Include="RTPPortManager.hxx" />
     <ClInclude Include="SipXBridgeMixer.hxx" />
     <ClInclude Include="SipXConversation.hxx" />
-    <ClInclude Include="SipXConversationManager.hxx" />
+    <ClInclude Include="SipXMediaStackAdapter.hxx" />
     <ClInclude Include="SipXHelper.hxx" />
     <ClInclude Include="SipXParticipant.hxx" />
     <ClInclude Include="SipXMediaResourceParticipant.hxx" />

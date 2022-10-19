@@ -130,7 +130,7 @@ Server::Server(ConfigParser& config) :
       OsSysLog::setOutputFile(0, mConfig.mSipXLogFilename.c_str()) ;
    }
 
-   setMediaStackAdapter(make_shared<SipXConversationManager>(*this, false /* local audio? */, SipXConversationManager::sipXConversationMediaInterfaceMode));
+   setMediaStackAdapter(make_shared<SipXMediaStackAdapter>(*this, false /* local audio? */, SipXMediaStackAdapter::sipXConversationMediaInterfaceMode));
 
    InfoLog( << "MOHParkServer settings:");
    ConfigParser::MOHSettingsMap::iterator itMOH = mConfig.mMOHSettingsMap.begin();
@@ -491,11 +491,6 @@ Server::getActiveCallsInfo(std::list<ActiveCallInfo>& callInfos)
     {
        itPark->second->getActiveCallsInfo(callInfos);
     }
-}
-
-void
-Server::onRemoteParticipantConstructed(RemoteParticipant *rp)
-{
 }
 
 void 

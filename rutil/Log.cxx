@@ -608,7 +608,8 @@ Log::tags(Log::Level level,
    char buffer[256] = "";
    Data ts(Data::Borrow, buffer, sizeof(buffer));
 #if defined( __APPLE__ )
-   pthread_t threadId = pthread_self();
+   uint64_t threadId;
+   pthread_threadid_np(nullptr, &threadId);
    const char* file = pfile;
 #elif defined( WIN32 )
    int threadId = (int)GetCurrentThreadId();
@@ -623,7 +624,7 @@ Log::tags(Log::Level level,
       ++file;
    }
 #else // #if defined( WIN32 ) || defined( __APPLE__ )
-   pthread_t threadId = pthread_self();
+   std::make_unsigned<pthread_t>::type threadId = pthread_self();
    const char* file = pfile;
 #endif
 
@@ -680,7 +681,7 @@ Log::tags(Log::Level level,
       //        << mHostname << Log::delim
       //        << mAppName << Log::delim
               << subsystem << Log::delim
-              << threadId << Log::delim
+              << "0x" << std::hex << threadId << std::dec << Log::delim
               << file << ":" << line;
       }
       else
@@ -694,7 +695,7 @@ Log::tags(Log::Level level,
          }
          strm << Log::delim
               << subsystem << Log::delim
-              << threadId << Log::delim
+              << "0x" << std::hex << threadId << std::dec << Log::delim
               << file << ":" << line;
       }
    }
@@ -1259,7 +1260,7 @@ Log::ThreadData::set(Type type, Level level,
       mLogFileName = Data(_loggingFilename.data(), _loggingFilename.size());
 #else
       mLogFileName = logFileName;
-      mLogFileName.replace("{timestamp}", Data((UInt64)time(0)));
+      mLogFileName.replace("{timestamp}", Data((uint64_t)time(0)));
 #ifdef WIN32
       mLogFileName.replace("{pid}", Data((int)GetCurrentProcess()));
 #else

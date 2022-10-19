@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "SipXConversationManager.hxx"
+#include "SipXMediaStackAdapter.hxx"
 
 #include "sdp/SdpHelperResip.hxx"
 #include "sdp/Sdp.hxx"
@@ -57,24 +57,24 @@ using namespace std;
 // UAC
 SipXRemoteParticipant::SipXRemoteParticipant(ParticipantHandle partHandle,
                                      ConversationManager& conversationManager,
-                                     SipXConversationManager& sipXConversationManager,
+                                     SipXMediaStackAdapter& sipXMediaStackAdapter,
                                      DialogUsageManager& dum,
                                      RemoteParticipantDialogSet& remoteParticipantDialogSet)
 : Participant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager),
   RemoteParticipant(partHandle, conversationManager, dum, remoteParticipantDialogSet),
-  SipXParticipant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager, sipXConversationManager)
+  SipXParticipant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager, sipXMediaStackAdapter)
 {
    InfoLog(<< "SipXRemoteParticipant created (UAC), handle=" << mHandle);
 }
 
 // UAS - or forked leg
 SipXRemoteParticipant::SipXRemoteParticipant(ConversationManager& conversationManager,
-                                     SipXConversationManager& sipXConversationManager,
+                                     SipXMediaStackAdapter& sipXMediaStackAdapter,
                                      DialogUsageManager& dum, 
                                      RemoteParticipantDialogSet& remoteParticipantDialogSet)
 : Participant(ConversationManager::ParticipantType_Remote, conversationManager),
   RemoteParticipant(conversationManager, dum, remoteParticipantDialogSet),
-  SipXParticipant(ConversationManager::ParticipantType_Remote, conversationManager, sipXConversationManager)
+  SipXParticipant(ConversationManager::ParticipantType_Remote, conversationManager, sipXMediaStackAdapter)
 {
    InfoLog(<< "SipXRemoteParticipant created (UAS or forked leg), handle=" << mHandle);
 }
@@ -137,7 +137,7 @@ SipXRemoteParticipant::getMediaConnectionId()
 }
 
 void
-SipXRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
+SipXRemoteParticipant::buildSdpOffer(bool holdSdp, CallbackSdpReady sdpReady, bool preferExistingSdp)
 {
    std::unique_ptr<SdpContents> _offer(new SdpContents);
    SdpContents& offer = *_offer;
@@ -155,7 +155,7 @@ SipXRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
       offer = getInviteSessionHandle()->getLocalSdp();
 
       // Set sessionid and version for this sdp
-      UInt64 currentTime = Timer::getTimeMicroSec();
+      uint64_t currentTime = Timer::getTimeMicroSec();
       offer.session().origin().getSessionId() = currentTime;
       offer.session().origin().getVersion() = currentTime;  
 
@@ -296,7 +296,7 @@ SipXRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
 #ifdef USE_SSL
    else if(getDialogSet().getSecureMediaMode() == ConversationProfile::SrtpDtls)
    {
-      if(mSipXConversationManager.getFlowManager().getDtlsFactory())
+      if(mSipXMediaStackAdapter.getFlowManager().getDtlsFactory())
       {
          // Note:  We could add the fingerprint and setup attributes to the "SDP Capabilties Negotiation" 
          //        potential configuration if secure media is not required - but other implementations 
@@ -305,7 +305,7 @@ SipXRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
 
          // Add fingerprint attribute
          char fingerprint[100];
-         mSipXConversationManager.getFlowManager().getDtlsFactory()->getMyCertFingerprint(fingerprint);
+         mSipXMediaStackAdapter.getFlowManager().getDtlsFactory()->getMyCertFingerprint(fingerprint);
          //offer.session().addAttribute("fingerprint", "SHA-1 " + Data(fingerprint));
          offer.session().addAttribute("fingerprint", "SHA-256 " + Data(fingerprint));  // Use SHA-256 for web-rtc compatibility
          //offer.session().addAttribute("acap", "1 fingerprint:SHA-1 " + Data(fingerprint));
@@ -356,7 +356,7 @@ SipXRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
       }
    }
    setProposedSdp(offer);
-   c(true, std::move(_offer));
+   sdpReady(true, std::move(_offer));
 }
 
 bool
@@ -435,7 +435,7 @@ SipXRemoteParticipant::answerMediaLine(SdpContents::Session::Medium& mediaSessio
             }
          }
 #ifdef USE_SSL
-         else if (mSipXConversationManager.getFlowManager().getDtlsFactory() &&
+         else if (mSipXMediaStackAdapter.getFlowManager().getDtlsFactory() &&
             (getDialogSet().getSecureMediaMode() == ConversationProfile::SrtpDtls ||
                protocolType == sdpcontainer::SdpMediaLine::PROTOCOL_TYPE_UDP_TLS_RTP_SAVP))  // allow accepting of DTLS SAVP profiles, even if DTLS-SRTP is not enabled as a SecureMedia mode
          {
@@ -449,7 +449,7 @@ SipXRemoteParticipant::answerMediaLine(SdpContents::Session::Medium& mediaSessio
 
                // Add fingerprint attribute to answer
                char fingerprint[100];
-               mSipXConversationManager.getFlowManager().getDtlsFactory()->getMyCertFingerprint(fingerprint);
+               mSipXMediaStackAdapter.getFlowManager().getDtlsFactory()->getMyCertFingerprint(fingerprint);
                //answer.session().addAttribute("fingerprint", "SHA-1 " + Data(fingerprint));
                answer.session().addAttribute("fingerprint", "SHA-256 " + Data(fingerprint));  // Use SHA-256 for web-rtc compatibility
 
@@ -574,13 +574,13 @@ SipXRemoteParticipant::answerMediaLine(SdpContents::Session::Medium& mediaSessio
    return valid;
 }
 
-AsyncBool
-SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpReady c)
+void
+SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, CallbackSdpReady sdpReady)
 {
    // Note: this implementation has minimal support for draft-ietf-mmusic-sdp-capabilities-negotiation
    //       for responding "best-effort" / optional SRTP (Dtls-SRTP) offers
 
-   AsyncBool valid = False;
+   bool valid = false;
    std::shared_ptr<sdpcontainer::Sdp> remoteSdp(SdpHelperResip::createSdpFromResipSdp(offer));
    std::unique_ptr<SdpContents> _answer(new SdpContents);
    SdpContents& answer = *_answer;
@@ -594,7 +594,7 @@ SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpR
       answer = profile->sessionCaps();
 
       // Set sessionid and version for this answer
-      UInt64 currentTime = Timer::getTimeMicroSec();
+      uint64_t currentTime = Timer::getTimeMicroSec();
       answer.session().origin().getSessionId() = currentTime;
       answer.session().origin().getVersion() = currentTime;  
 
@@ -648,7 +648,7 @@ SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpR
                // We have a valid potential media - line - copy over normal media line to make 
                // further processing easier
                *(*itMediaLine) = *itPotentialMediaLine;  
-               valid = True;
+               valid = true;
                break;
             }
          }         
@@ -671,7 +671,7 @@ SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpR
             }
             else
             {
-               valid = True;
+               valid = true;
             }
          }
       }  // end loop through m= offers
@@ -679,23 +679,22 @@ SipXRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpR
    catch(BaseException &e)
    {
       WarningLog( << "buildSdpAnswer: exception parsing SDP offer: " << e.getMessage());
-      valid = False;
+      valid = false;
    }
    catch(...)
    {
       WarningLog( << "buildSdpAnswer: unknown exception parsing SDP offer");
-      valid = False;
+      valid = false;
    }
 
    //InfoLog( << "SDPOffer: " << offer);
    //InfoLog( << "SDPAnswer: " << answer);
-   if(valid == True)
+   if(valid)
    {
       setLocalSdp(answer);
       setRemoteSdp(offer);
    }
-   c(valid == True, std::move(_answer));
-   return valid;
+   sdpReady(valid, std::move(_answer));
 }
 
 #ifdef OLD_CODE
@@ -720,7 +719,7 @@ SipXRemoteParticipant::formMidDialogSdpOfferOrAnswer(const SdpContents& localSdp
       newSdp.session().media().clear();
 
       // Set sessionid and version for this sdp
-      UInt64 currentTime = Timer::getTimeMicroSec();
+      uint64_t currentTime = Timer::getTimeMicroSec();
       newSdp.session().origin().getSessionId() = currentTime;
       newSdp.session().origin().getVersion() = currentTime;  
 
@@ -1036,9 +1035,9 @@ SipXRemoteParticipant::adjustRTPStreams(bool sendingOffer)
       {
          mediaDirection = sdpcontainer::SdpMediaLine::DIRECTION_TYPE_RECVONLY;
       }
-      else if(remoteMediaDirection == sdpcontainer::SdpMediaLine::DIRECTION_TYPE_SENDONLY)
+      else if(remoteMediaDirection == sdpcontainer::SdpMediaLine::DIRECTION_TYPE_RECVONLY)
       {
-         mediaDirection = sdpcontainer::SdpMediaLine::DIRECTION_TYPE_RECVONLY;
+         mediaDirection = sdpcontainer::SdpMediaLine::DIRECTION_TYPE_SENDONLY;
       }
       else
       {

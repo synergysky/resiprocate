@@ -15,17 +15,17 @@ using namespace std;
 SipXParticipant::SipXParticipant(ParticipantHandle partHandle,
                          ConversationManager::ParticipantType partType,
                          ConversationManager& conversationManager,
-                         SipXConversationManager& sipXConversationManager)
+                         SipXMediaStackAdapter& sipXMediaStackAdapter)
 : Participant(partHandle, partType, conversationManager),
-  mSipXConversationManager(sipXConversationManager)
+  mSipXMediaStackAdapter(sipXMediaStackAdapter)
 {
 }
 
 SipXParticipant::SipXParticipant(ConversationManager::ParticipantType partType,
                                  ConversationManager& conversationManager,
-                                 SipXConversationManager& sipXConversationManager)
+                                 SipXMediaStackAdapter& sipXMediaStackAdapter)
 : Participant(partType, conversationManager),
-  mSipXConversationManager(sipXConversationManager)
+  mSipXMediaStackAdapter(sipXMediaStackAdapter)
 {
 }
 
@@ -36,12 +36,12 @@ SipXParticipant::~SipXParticipant()
 std::shared_ptr<SipXMediaInterface>
 SipXParticipant::getMediaInterface()
 {
-   switch(mSipXConversationManager.getMediaInterfaceMode())
+   switch(mSipXMediaStackAdapter.getMediaInterfaceMode())
    {
-   case SipXConversationManager::sipXGlobalMediaInterfaceMode:
-      resip_assert(mSipXConversationManager.getMediaInterface() != 0);
-      return mSipXConversationManager.getMediaInterface();
-   case SipXConversationManager::sipXConversationMediaInterfaceMode:
+   case SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode:
+      resip_assert(mSipXMediaStackAdapter.getMediaInterface() != 0);
+      return mSipXMediaStackAdapter.getMediaInterface();
+   case SipXMediaStackAdapter::sipXConversationMediaInterfaceMode:
    {
       // Note:  For this mode, the recon code ensures that all conversations a participant 
       //        is added to will share the same media interface, so using the first 

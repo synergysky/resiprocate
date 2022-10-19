@@ -3,6 +3,7 @@
 
 #include "BridgeMixer.hxx"
 
+#include <rutil/ConfigParse.hxx>
 #include <resip/stack/Uri.hxx>
 #include <resip/stack/Contents.hxx>
 #include <resip/dum/InviteSessionHandler.hxx>
@@ -11,9 +12,6 @@
 #include <resip/dum/OutOfDialogHandler.hxx>
 #include <resip/dum/RedirectHandler.hxx>
 #include <resip/dum/PagerMessageHandler.hxx>
-#include <rutil/RWMutex.hxx>
-
-#include <reflow/RTCPEventLoggingHandler.hxx>
 
 #include "MediaResourceCache.hxx"
 #include "MediaEvent.hxx"
@@ -21,6 +19,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 
 namespace resip
 {
@@ -72,7 +71,8 @@ class ConversationManager : public resip::InviteSessionHandler,
 {
 public:
 
-   ConversationManager(std::shared_ptr<MediaStackAdapter> mediaStackAdapter);
+   ConversationManager(std::shared_ptr<MediaStackAdapter> mediaStackAdapter,
+      std::shared_ptr<resip::ConfigParse> configParse = std::shared_ptr<resip::ConfigParse>());
    virtual ~ConversationManager();
 
    typedef enum
@@ -460,6 +460,8 @@ public:
    */
    virtual bool getBufferFromMediaResourceCache(const resip::Data& name, resip::Data** buffer, int* type);
    
+   virtual void requestKeyframe(ParticipantHandle partHandle, std::chrono::duration<double> durationMs);
+   virtual void requestKeyframeFromPeer(ParticipantHandle partHandle, std::chrono::duration<double> durationMs);
    /**
      This function is used to start a timer on behalf of recon based application.
      The onApplicationTimer callback will get called when the timer expires.
@@ -682,7 +684,7 @@ public:
    virtual void setMediaStackAdapter(std::shared_ptr<MediaStackAdapter> mediaStackAdapter);
    MediaStackAdapter& getMediaStackAdapter() { return *mMediaStackAdapter; };
 
-   virtual void onRemoteParticipantConstructed(RemoteParticipant *rp) = 0;
+   std::shared_ptr<resip::ConfigParse> getConfig() { return mConfigParse; };
 
 protected:
 
@@ -741,7 +743,7 @@ protected:
    virtual void onExpiredByClient(resip::ServerSubscriptionHandle, const resip::SipMessage& sub, resip::SipMessage& notify);
    virtual void onExpired(resip::ServerSubscriptionHandle, resip::SipMessage& notify);
    virtual bool hasDefaultExpires() const;
-   virtual UInt32 getDefaultExpires() const;
+   virtual uint32_t getDefaultExpires() const;
 
    // OutOfDialogHandler //////////////////////////////////////////////////////////
    virtual void onSuccess(resip::ClientOutOfDialogReqHandle, const resip::SipMessage& response);
@@ -779,8 +781,6 @@ protected:
    std::set<ParticipantHandle> getParticipantHandlesByType(ParticipantType participantType) const;  // thread safe
 
    bool isShuttingDown() { return mShuttingDown; }
-
-   Participant* getParticipant(ParticipantHandle partHandle); // FIXME, should be private
 
 private:
    friend class DefaultDialogSet;
@@ -859,21 +859,25 @@ private:
    friend class HoldParticipantCmd;
    friend class CreateRemoteIMPagerParticipantCmd;
    friend class SendIMToParticipantCmd;
+   friend class RequestKeyframeCmd;
+   friend class RequestKeyframeFromPeerCmd;
 
    UserAgent* mUserAgent;
    std::shared_ptr<MediaStackAdapter> mMediaStackAdapter;
+   std::shared_ptr<resip::ConfigParse> mConfigParse;
    bool mShuttingDown;
 
    typedef std::map<ConversationHandle, Conversation *> ConversationMap;
    ConversationMap mConversations;
-   mutable resip::RWMutex mConversationHandlesMutex;
+   mutable std::mutex mConversationHandlesMutex;
    std::atomic<ConversationHandle> mCurrentConversationHandle;
    std::set<ConversationHandle> mConversationHandles;
 
    typedef std::map<ParticipantHandle, Participant *> ParticipantMap;
    ParticipantMap mParticipants;
-   mutable resip::RWMutex mParticipantHandlesMutex;
+   mutable std::mutex mParticipantHandlesMutex;
    std::atomic<ParticipantHandle> mCurrentParticipantHandle;
+   Participant* getParticipant(ParticipantHandle partHandle);
    std::map<ParticipantType, std::set<ParticipantHandle>> mParticipantHandlesByType;
 
    MediaResourceCache mMediaResourceCache;

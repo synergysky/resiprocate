@@ -8,15 +8,18 @@
 #include <rutil/Log.hxx>
 
 #include "MyConversationManager.hxx"
+#include "MyUserAgent.hxx"
 
 #include <rutil/Logger.hxx>
 #include <AppSubsystem.hxx>
 
 #include <resip/recon/LocalParticipant.hxx>
 #include <resip/recon/RemoteParticipant.hxx>
-#include <media/kurento/Object.hxx>
 #include <resip/recon/Conversation.hxx>
+#ifdef USE_KURENTO
+#include <media/kurento/Object.hxx>
 #include <resip/recon/KurentoRemoteParticipant.hxx>
+#endif
 
 // Test Prompts for cache testing
 #include "playback_prompt.h"
@@ -37,12 +40,13 @@ MyConversationManager::MyConversationManager(const ReConServerConfig& config, co
         mAutoAnswerEnabled(autoAnswerEnabled)
 { 
 #ifdef PREFER_KURENTO
-   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<KurentoConversationManager>(*this, kurentoUri);
+   Data kurentoUri = config.getConfigData("KurentoURI", "ws://127.0.0.1:8888/kurento");
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<KurentoMediaStackAdapter>(*this, kurentoUri);
 #else
 #ifdef USE_SIPXTAPI
-   SipXConversationManager::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
-      ? SipXConversationManager::sipXGlobalMediaInterfaceMode : SipXConversationManager::sipXConversationMediaInterfaceMode;
-   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<SipXConversationManager>(*this, localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false);
+   SipXMediaStackAdapter::MediaInterfaceMode mediaInterfaceMode = config.getConfigBool("GlobalMediaInterface", false)
+      ? SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode : SipXMediaStackAdapter::sipXConversationMediaInterfaceMode;
+   shared_ptr<MediaStackAdapter> mediaStackAdapter = make_shared<SipXMediaStackAdapter>(*this, localAudioEnabled, mediaInterfaceMode, defaultSampleRate, maxSampleRate, false);
 #else
    #error Need Kurento or sipXtapi
 #endif
@@ -314,7 +318,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
 }
 
 void
-MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandle)
+MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage& msg, bool autoAnswer, ConversationProfile& conversationProfile)
 {
     DebugLog(<<"MyConversationManager::onParticipantDestroyedKurento " << std::to_string(partHandle));
     RoomMap::const_iterator it = mRooms.begin();
@@ -453,21 +457,6 @@ void
 MyConversationManager::onParticipantRequestedHold(ParticipantHandle partHandle, bool held)
 {
     InfoLog(<< "onParticipantRequestedHold: handle=" << partHandle << " held=" << held);
-}
-
-void
-MyConversationManager::onRemoteParticipantConstructed(RemoteParticipant *rp)
-{
-#ifdef USE_KURENTO
-   KurentoRemoteParticipant* krp = dynamic_cast<KurentoRemoteParticipant*>(rp);
-   if(krp)
-   {
-      krp->mRemoveExtraMediaDescriptors = mConfig.getConfigBool("KurentoRemoveExtraMediaDescriptors", false);
-      krp->mSipRtpEndpoint = mConfig.getConfigBool("KurentoSipRtpEndpoint", true);
-      krp->mReuseSdpAnswer = mConfig.getConfigBool("KurentoReuseSdpAnswer", false);
-      krp->mWSAcceptsKeyframeRequests = mConfig.getConfigBool("KurentoWebSocketAcceptsKeyframeRequests", true);
-   }
-#endif
 }
 
 void

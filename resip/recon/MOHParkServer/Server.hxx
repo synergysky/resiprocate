@@ -8,7 +8,7 @@
 #include "../UserAgent.hxx"
 #include "../HandleTypes.hxx"
 
-#include "../SipXConversationManager.hxx"
+#include "../SipXMediaStackAdapter.hxx"
 
 #ifdef WIN32
    #define sleepMs(t) Sleep(t)
@@ -70,8 +70,6 @@ public:
 
    // Configuration Container
    ConfigParser& mConfig;
-
-   virtual void onRemoteParticipantConstructed(recon::RemoteParticipant *rp) override;
 
 protected:
    // Conversation Manager Handlers

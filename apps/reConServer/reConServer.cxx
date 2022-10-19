@@ -41,12 +41,6 @@ int _kbhit() {
 #include "resip/recon/UserAgent.hxx"
 #include "AppSubsystem.hxx"
 
-#ifdef USE_SIPXTAPI
-#include <resip/recon/SipXHelper.hxx>
-#include <os/OsSysLog.h>
-#include <resip/recon/SipXConversationManager.hxx>
-#endif
-
 #include "reConServerConfig.hxx"
 #include "reConServer.hxx"
 #include "MyMessageDecorator.hxx"
@@ -63,6 +57,12 @@ int _kbhit() {
 
 #include <resip/stack/HEPSipMessageLoggingHandler.hxx>
 #include <reflow/HEPRTCPEventLoggingHandler.hxx>
+
+#ifdef PREFER_SIPXTAPI
+#include <resip/recon/SipXHelper.hxx>
+#include <os/OsSysLog.h>
+#include <resip/recon/SipXMediaStackAdapter.hxx>
+#endif
 
 using namespace reconserver;
 using namespace recon;
@@ -129,7 +129,7 @@ void ReConServerProcess::processCommandLine(Data& commandline, MyConversationMan
    }
 
 #ifdef PREFER_SIPXTAPI
-   SipXConversationManager& mediaStackAdapter = static_cast<SipXConversationManager&>(myConversationManager.getMediaStackAdapter());
+   SipXMediaStackAdapter& mediaStackAdapter = static_cast<SipXMediaStackAdapter&>(myConversationManager.getMediaStackAdapter());
 #endif
 
    // Process commands
@@ -794,6 +794,8 @@ ReConServerProcess::main (int argc, char** argv)
    Data password = reConServerConfig.getConfigData("Password", "", true);
    Data dnsServers = reConServerConfig.getConfigData("DNSServers", "", true);;
    Data address = reConServerConfig.getConfigData("IPAddress", DnsUtil::getLocalIpAddress(), true);
+   bool delayedMediaOutboundMode = reConServerConfig.getConfigBool("DelayedMediaDialing", false);
+   ConversationProfile::MediaEndpointMode mediaEndpointMode = reConServerConfig.getConfigMediaEndpointMode("MediaEndpointMode", ConversationProfile::Base);
    ConversationProfile::SecureMediaMode secureMediaMode = reConServerConfig.getConfigSecureMediaMode("SecureMediaMode", ConversationProfile::NoSecureMedia);
    bool secureMediaRequired = reConServerConfig.isSecureMediaModeRequired();
    ConversationProfile::NatTraversalMode natTraversalMode = reConServerConfig.getConfigNatTraversalMode("NatTraversalMode", ConversationProfile::NoNatTraversal);
@@ -826,8 +828,8 @@ ReConServerProcess::main (int argc, char** argv)
    Data runAsUser = reConServerConfig.getConfigData("RunAsUser", "", true);
    Data runAsGroup = reConServerConfig.getConfigData("RunAsGroup", "", true);
 #ifdef USE_SIPXTAPI
-   SipXConversationManager::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
-      ? SipXConversationManager::sipXGlobalMediaInterfaceMode : SipXConversationManager::sipXConversationMediaInterfaceMode;
+   SipXMediaStackAdapter::MediaInterfaceMode mediaInterfaceMode = reConServerConfig.getConfigBool("GlobalMediaInterface", false)
+      ? SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode : SipXMediaStackAdapter::sipXConversationMediaInterfaceMode;
 #endif
    unsigned int defaultSampleRate = reConServerConfig.getConfigUnsignedLong("DefaultSampleRate", 8000);
    unsigned int maximumSampleRate = reConServerConfig.getConfigUnsignedLong("MaximumSampleRate", 8000);
@@ -866,7 +868,7 @@ ReConServerProcess::main (int argc, char** argv)
 
    Log::initialize(reConServerConfig, argv[0]);
 
-#ifdef USE_SIPXTAPI
+#ifdef PREFER_SIPXTAPI
    // Setup logging for the sipX media stack
    // It is bridged to the reSIProcate logger
    SipXHelper::setupLoggingBridge("reConServer");
@@ -903,7 +905,7 @@ ReConServerProcess::main (int argc, char** argv)
    InfoLog( << "  Local Audio Enabled = " << (localAudioEnabled ? "true" : "false"));
 #ifdef USE_SIPXTAPI
    InfoLog( << "  Global Media Interface = " <<
-      ((mediaInterfaceMode == SipXConversationManager::sipXGlobalMediaInterfaceMode) ? "true" : "false"));
+      ((mediaInterfaceMode == SipXMediaStackAdapter::sipXGlobalMediaInterfaceMode) ? "true" : "false"));
 #endif
    InfoLog( << "  Default sample rate = " << defaultSampleRate);
    InfoLog( << "  Maximum sample rate = " << maximumSampleRate);
@@ -1293,6 +1295,20 @@ ReConServerProcess::main (int argc, char** argv)
    InteropHelper::setRportEnabled(addViaRport);
    conversationProfile->setRportEnabled(addViaRport);
 
+   // FIXME - we may need to do more to support this, alternatively, maybe we
+   // just do everything from behind a proxy that does it for us
+   InteropHelper::setOutboundSupported(reConServerConfig.getConfigBool("DisableOutbound", false) ? false : true);
+   InteropHelper::setRRTokenHackEnabled(reConServerConfig.getConfigBool("EnableFlowTokens", false));
+   InteropHelper::setAllowInboundFlowTokensForNonDirectClients(reConServerConfig.getConfigBool("AllowInboundFlowTokensForNonDirectClients", false));
+   InteropHelper::setAssumeFirstHopSupportsOutboundEnabled(reConServerConfig.getConfigBool("AssumeFirstHopSupportsOutbound", false));
+   InteropHelper::setAssumeFirstHopSupportsFlowTokensEnabled(reConServerConfig.getConfigBool("AssumeFirstHopSupportsFlowTokens", false));
+
+   // Delayed media settings
+   conversationProfile->delayedMediaOutboundMode() = delayedMediaOutboundMode;
+
+   // WebRTC settings.
+   conversationProfile->mediaEndpointMode() = mediaEndpointMode;
+
    // Secure Media Settings
    conversationProfile->secureMediaMode() = secureMediaMode;
    conversationProfile->secureMediaRequired() = secureMediaRequired;
@@ -1310,7 +1326,7 @@ ReConServerProcess::main (int argc, char** argv)
       switch(application)
       {
          case ReConServerConfig::None:
-            mConversationManager = std::unique_ptr<MyConversationManager>(new MyConversationManager(reConServerConfig, kurentoUri, localAudioEnabled, defaultSampleRate, maximumSampleRate, autoAnswerEnabled));
+            mConversationManager = std::unique_ptr<MyConversationManager>(new MyConversationManager(reConServerConfig, localAudioEnabled, defaultSampleRate, maximumSampleRate, autoAnswerEnabled));
             break;
          case ReConServerConfig::B2BUA:
             {
@@ -1318,7 +1334,7 @@ ReConServerProcess::main (int argc, char** argv)
                {
                   mCDRFile = std::make_shared<CDRFile>(cdrLogFilename);
                }
-               b2BCallManager = new B2BCallManager(kurentoUri, defaultSampleRate, maximumSampleRate, reConServerConfig, mCDRFile);
+               b2BCallManager = new B2BCallManager(reConServerConfig, defaultSampleRate, maximumSampleRate, mCDRFile);
                mConversationManager.reset(b2BCallManager);
             }
             break;
@@ -1327,7 +1343,7 @@ ReConServerProcess::main (int argc, char** argv)
       }
       mUserAgent = std::make_shared<MyUserAgent>(reConServerConfig, mConversationManager.get(), profile);
 #ifdef PREFER_SIPXTAPI
-      SipXConversationManager& mediaStackAdapter = static_cast<SipXConversationManager&>(mConversationManager->getMediaStackAdapter());
+      SipXMediaStackAdapter& mediaStackAdapter = static_cast<SipXMediaStackAdapter&>(mConversationManager->getMediaStackAdapter());
       mediaStackAdapter.buildSessionCapabilities(address, _codecIds, conversationProfile->sessionCaps());
 #endif
       mUserAgent->addConversationProfile(conversationProfile);
@@ -1368,6 +1384,29 @@ ReConServerProcess::main (int argc, char** argv)
       // Startup and run...
       //////////////////////////////////////////////////////////////////////////////
 
+#ifdef BUILD_QPID_PROTON
+      const Data& protonCommandQueue = reConServerConfig.getConfigData("BrokerURL", "");
+      const Data& protonEventTopic = reConServerConfig.getConfigData("EventTopicURL", "");
+      if(!protonCommandQueue.empty() || !protonEventTopic.empty())
+      {
+         mProtonCommandThread.reset(new ProtonThreadBase());
+         if(!protonCommandQueue.empty())
+         {
+            mCommandQueue.reset(new ProtonCommandThread(protonCommandQueue));
+            mProtonCommandThread->addReceiver(mCommandQueue);
+         }
+         if(!protonEventTopic.empty())
+         {
+            mEventTopic.reset(new ProtonThreadBase::ProtonSenderBase(protonEventTopic.c_str()));
+            mProtonCommandThread->addSender(mEventTopic);
+            mConversationManager->setEventListener([this](const Data& event){
+               mEventTopic->sendMessage(event);
+            });
+         }
+         mProtonCommandThread->run();
+      }
+#endif
+
       mUserAgent->startup();
       mConversationManager->startup();
 
@@ -1383,9 +1422,16 @@ ReConServerProcess::main (int argc, char** argv)
       mainLoop();
 
       mUserAgent->shutdown();
+#ifdef BUILD_QPID_PROTON
+      if(mProtonCommandThread)
+      {
+         mProtonCommandThread->shutdown();
+         mProtonCommandThread.release();
+      }
+#endif
    }
    InfoLog(<< "reConServer is shutdown.");
-#ifdef USE_SIPXTAPI
+#ifdef PREFER_SIPXTAPI
    OsSysLog::shutdown();
 #endif
    ::sleepSeconds(2);
@@ -1422,6 +1468,12 @@ ReConServerProcess::onLoop()
 #endif
       }
    }
+#ifdef BUILD_QPID_PROTON
+   if(mProtonCommandThread && mConversationManager)
+   {
+      mCommandQueue->processQueue(*mConversationManager);
+   }
+#endif
 }
 
 void
@@ -1438,6 +1490,8 @@ ReConServerProcess::onReload()
 
 /* ====================================================================
 
+ Copyright (C) 2022 Daniel Pocock https://danielpocock.com
+ Copyright (C) 2022 Software Freedom Institute SA https://softwarefreedom.institute
  Copyright (c) 2007-2008, Plantronics, Inc.
  All rights reserved.
 

@@ -4,7 +4,7 @@
 
 #include <media/kurento/Object.hxx>
 
-#include "KurentoConversationManager.hxx"
+#include "KurentoMediaStackAdapter.hxx"
 
 #include "KurentoRemoteParticipant.hxx"
 #include "Conversation.hxx"
@@ -17,6 +17,7 @@
 #include <rutil/DnsUtil.hxx>
 #include <rutil/Random.hxx>
 #include <resip/stack/DtmfPayloadContents.hxx>
+#include <resip/stack/SdpContents.hxx>
 #include <resip/stack/SipFrag.hxx>
 #include <resip/stack/ExtensionHeader.hxx>
 #include <resip/dum/DialogUsageManager.hxx>
@@ -61,36 +62,38 @@ using namespace std;
 // UAC
 KurentoRemoteParticipant::KurentoRemoteParticipant(ParticipantHandle partHandle,
                                      ConversationManager& conversationManager,
-                                     KurentoConversationManager& kurentoConversationManager,
+                                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                                      DialogUsageManager& dum,
                                      RemoteParticipantDialogSet& remoteParticipantDialogSet)
 : Participant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager),
   RemoteParticipant(partHandle, conversationManager, dum, remoteParticipantDialogSet),
-  KurentoParticipant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager, kurentoConversationManager),
+  KurentoParticipant(partHandle, ConversationManager::ParticipantType_Remote, conversationManager, kurentoMediaStackAdapter),
   mRemoveExtraMediaDescriptors(false),
   mSipRtpEndpoint(true),
   mReuseSdpAnswer(false),
   mWSAcceptsKeyframeRequests(true),
   mLastRemoteSdp(0),
-  mWaitingAnswer(false)
+  mWaitingAnswer(false),
+  mWebRTCOutgoing(getDialogSet().getConversationProfile()->mediaEndpointMode() == ConversationProfile::WebRTC)
 {
    InfoLog(<< "KurentoRemoteParticipant created (UAC), handle=" << mHandle);
 }
 
 // UAS - or forked leg
 KurentoRemoteParticipant::KurentoRemoteParticipant(ConversationManager& conversationManager,
-                                     KurentoConversationManager& kurentoConversationManager,
+                                     KurentoMediaStackAdapter& kurentoMediaStackAdapter,
                                      DialogUsageManager& dum, 
                                      RemoteParticipantDialogSet& remoteParticipantDialogSet)
 : Participant(ConversationManager::ParticipantType_Remote, conversationManager),
   RemoteParticipant(conversationManager, dum, remoteParticipantDialogSet),
-  KurentoParticipant(ConversationManager::ParticipantType_Remote, conversationManager, kurentoConversationManager),
+  KurentoParticipant(ConversationManager::ParticipantType_Remote, conversationManager, kurentoMediaStackAdapter),
   mRemoveExtraMediaDescriptors(false),
   mSipRtpEndpoint(true),
   mReuseSdpAnswer(false),
   mWSAcceptsKeyframeRequests(true),
   mLastRemoteSdp(0),
-  mWaitingAnswer(false)
+  mWaitingAnswer(false),
+  mWebRTCOutgoing(getDialogSet().getConversationProfile()->mediaEndpointMode() == ConversationProfile::WebRTC)
 {
    InfoLog(<< "KurentoRemoteParticipant created (UAS or forked leg), handle=" << mHandle);
 }
@@ -128,16 +131,19 @@ KurentoRemoteParticipant::getMediaConnectionId()
    return getKurentoDialogSet().getMediaConnectionId();
 }
 
-kurento::BaseRtpEndpoint*
-KurentoRemoteParticipant::newEndpoint()
+void
+KurentoRemoteParticipant::applyBridgeMixWeights()
 {
-   return mSipRtpEndpoint ?
-            dynamic_cast<kurento::BaseRtpEndpoint*>(new kurento::SipRtpEndpoint(mKurentoConversationManager.mPipeline)) :
-            dynamic_cast<kurento::BaseRtpEndpoint*>(new kurento::RtpEndpoint(mKurentoConversationManager.mPipeline));
+   // FIXME Kurento - do we need to implement this?
 }
 
+// Special version of this call used only when a participant
+// is removed from a conversation.  Required when sipXConversationMediaInterfaceMode
+// is used, in order to get a pointer to the bridge mixer
+// for a participant (ie. LocalParticipant) that has no currently
+// assigned conversations.
 void
-KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
+KurentoRemoteParticipant::applyBridgeMixWeights(Conversation* removedConversation)
 {
     // FIXME Kurento - include video, SRTP, WebRTC?
 
@@ -236,10 +242,10 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
     }
 }
 
-AsyncBool
-KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationSdpReady c)
+void
+KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, CallbackSdpReady sdpReady)
 {
-   AsyncBool valid = False;
+   bool requestSent = false;
 
    std::shared_ptr<SdpContents> offerMangled = std::make_shared<SdpContents>(offer);
    SdpContents::Session::MediumContainer::iterator it = offerMangled->session().media().begin();
@@ -364,7 +370,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
-         c(true, std::move(_answer));
+         sdpReady(true, std::move(_answer));
       };
 
      
@@ -390,13 +396,9 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
                std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
                webRtc->addDataChannelOpenedListener(elEventDebug, [this](){});
 
-               std::shared_ptr<kurento::EventContinuation> elIceGatheringDone =
-                     std::make_shared<kurento::EventContinuation>([this, cOnAnswerReady](std::shared_ptr<kurento::Event> event){
-                  mIceGatheringDone = true;
-                  mEndpoint->getLocalSessionDescriptor(cOnAnswerReady);
-               });
-               webRtc->addOnIceGatheringDoneListener(elIceGatheringDone, [this](){});
-               webRtc->addOnIceCandidateFoundListener(elEventDebug, [this](){});
+                  // FIXME - if we sent an SDP answer here,
+                  //         make sure we don't call provideAnswer again on 200 OK
+               }
 
                webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
@@ -411,9 +413,9 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          }, *offerMangledStr); // processOffer
       };
 
-      if(endpointExists)
+      if(firstUseEndpoint)
       {
-         cConnected();
+         createAndConnectElements(cConnected);
       }
       else
       {
@@ -431,7 +433,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          }); // create
       }
 
-      valid = Async;
+      requestSent = true;
    }
    catch(exception& e)
    {
@@ -529,7 +531,12 @@ KurentoRemoteParticipant::mediaStackPortAvailable()
 void
 KurentoRemoteParticipant::waitingMode()
 {
-   getWaitingModeElement()->connect([this]{
+   std::shared_ptr<kurento::MediaElement> e = getWaitingModeElement();
+   if(!e)
+   {
+      return;
+   }
+   e->connect([this]{
       DebugLog(<<"connected in waiting mode, waiting for peer");
       if(mWaitingModeVideo)
       {
@@ -562,6 +569,13 @@ KurentoRemoteParticipant::onMediaControlEvent(MediaControlContents::MediaControl
 {
    if(mWSAcceptsKeyframeRequests)
    {
+      auto now = std::chrono::steady_clock::now();
+      if(now < (mLastLocalKeyframeRequest + getKeyframeRequestInterval()))
+      {
+         DebugLog(<<"keyframe request ignored, too soon");
+         return false;
+      }
+      mLastLocalKeyframeRequest = now;
       InfoLog(<<"onMediaControlEvent: sending to Kurento");
       // FIXME - check the content of the event
       mEndpoint->sendPictureFastUpdate([this](){}); // FIXME Kurento async, do we need to wait for Kurento here?
@@ -574,6 +588,41 @@ KurentoRemoteParticipant::onMediaControlEvent(MediaControlContents::MediaControl
    }
 }
 
+bool
+KurentoRemoteParticipant::onTrickleIce(resip::TrickleIceContents& trickleIce)
+{
+   DebugLog(<<"onTrickleIce: sending to Kurento");
+   // FIXME - did we already receive a suitable SDP for trickle ICE and send it to Kurento?
+   //         if not, Kurento is not ready for the candidates
+   // FIXME - do we need to validate the ice-pwd password attribute here?
+   std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
+   for(auto m = trickleIce.media().cbegin(); m != trickleIce.media().cend(); m++)
+   {
+      if(m->exists("mid"))
+      {
+         const Data& mid = m->getValues("mid").front();
+         const std::string _mid = mid.c_str();
+         unsigned int mLineIndex = mid.convertInt(); // FIXME - calculate from the full SDP
+         if(m->exists("candidate"))
+         {
+            auto candidates = m->getValues("candidate");
+            for(auto a = candidates.cbegin(); a != candidates.cend(); a++)
+            {
+               webRtc->addIceCandidate([this](){},
+                  a->c_str(),
+                  _mid,
+                  mLineIndex);
+            }
+         }
+      }
+      else
+      {
+         WarningLog(<<"mid is missing for Medium in SDP fragment: " << trickleIce);
+         return false;
+      }
+   }
+   return true;
+}
 
 /* ====================================================================
 

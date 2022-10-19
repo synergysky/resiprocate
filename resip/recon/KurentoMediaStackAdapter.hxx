@@ -1,5 +1,5 @@
-#if !defined(KurentoConversationManager_hxx)
-#define KurentoConversationManager_hxx
+#if !defined(KurentoMediaStackAdapter_hxx)
+#define KurentoMediaStackAdapter_hxx
 
 #include <boost/function.hpp>
 
@@ -58,7 +58,7 @@ class KurentoRemoteParticipantDialogSet;
   -Managing local audio properties
 */
 
-class KurentoConversationManager : public MediaStackAdapter
+class KurentoMediaStackAdapter : public MediaStackAdapter, public kurento::KurentoConnectionObserver
 {
 public:
 
@@ -115,11 +115,15 @@ public:
                 same media interface.
    */
 
-   KurentoConversationManager(ConversationManager& conversationManager, const resip::Data& kurentoUri);
-   KurentoConversationManager(ConversationManager& conversationManager, const resip::Data& kurentoUri, int defaultSampleRate, int maxSampleRate);
-   virtual ~KurentoConversationManager();
+   KurentoMediaStackAdapter(ConversationManager& conversationManager, const resip::Data& kurentoUri);
+   KurentoMediaStackAdapter(ConversationManager& conversationManager, const resip::Data& kurentoUri, int defaultSampleRate, int maxSampleRate);
+   virtual ~KurentoMediaStackAdapter();
+
+   virtual void onConnected() override;
 
    virtual void conversationManagerReady(ConversationManager* conversationManager) override;
+
+   virtual void shutdown() override;
 
    ///////////////////////////////////////////////////////////////////////
    // Conversation methods  //////////////////////////////////////////////
@@ -192,6 +196,7 @@ public:
 
 protected:
    virtual void setUserAgent(UserAgent *userAgent) override;
+   virtual void configureRemoteParticipantInstance(KurentoRemoteParticipant* krp);
 
 private:
    void init(int defaultSampleRate = 0, int maxSampleRate = 0);
@@ -226,7 +231,6 @@ private:
 
    virtual void process() override;
 
-   virtual void setRTCPEventLoggingHandler(std::shared_ptr<flowmanager::RTCPEventLoggingHandler> h) override;
    virtual void initializeDtlsFactory(const resip::Data& defaultAoR) override;
 
    friend class OutputBridgeMixWeightsCmd;

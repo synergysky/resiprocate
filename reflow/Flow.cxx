@@ -210,14 +210,14 @@ Flow::~Flow()
 }
 
 void 
-Flow::activateFlow(UInt64 reservationToken)
+Flow::activateFlow(uint64_t reservationToken)
 {
    mReservationToken = reservationToken;
    activateFlow(StunMessage::PropsNone);
 }
 
 void 
-Flow::activateFlow(UInt8 allocationProps)
+Flow::activateFlow(uint8_t allocationProps)
 {
    mAllocationProps = allocationProps;
 
@@ -352,7 +352,7 @@ Flow::receiveFrom(const asio::ip::address& address, unsigned short port, char* b
    bool done = false;
    asio::error_code errorCode;
 
-   UInt64 startTime = Timer::getTimeMs();
+   uint64_t startTime = Timer::getTimeMs();
    unsigned int recvTimeout;
    while(!done)
    {
@@ -609,7 +609,7 @@ Flow::getReflexiveTuple()
    return mReflexiveTuple; 
 } 
 
-UInt64 
+uint64_t 
 Flow::getReservationToken()
 {
    resip_assert(mFlowState == Ready);
@@ -694,7 +694,7 @@ Flow::onBindFailure(unsigned int socketDesc, const asio::error_code& e, const St
 }
 
 void 
-Flow::onAllocationSuccess(unsigned int socketDesc, const StunTuple& reflexiveTuple, const StunTuple& relayTuple, unsigned int lifetime, unsigned int bandwidth, UInt64 reservationToken)
+Flow::onAllocationSuccess(unsigned int socketDesc, const StunTuple& reflexiveTuple, const StunTuple& relayTuple, unsigned int lifetime, unsigned int bandwidth, uint64_t reservationToken)
 {
    InfoLog(<< "Flow::onAllocationSuccess: socketDesc=" << socketDesc << 
       ", reflexive=" << reflexiveTuple << 
@@ -851,16 +851,21 @@ Flow::onReceiveSuccess(unsigned int socketDesc, const asio::ip::address& address
    }
 }
 
-void 
+void
 Flow::onReceiveFailure(unsigned int socketDesc, const asio::error_code& e)
 {
-   WarningLog(<< "Flow::onReceiveFailure: socketDesc=" << socketDesc << " error=" << e.value() << "(" << e.message() << "), componentId=" << mComponentId);
-
    // Make sure we keep receiving if we get an ICMP error on a UDP socket
-   if(e.value() == asio::error::connection_reset && mLocalBinding.getTransportType() == StunTuple::UDP)
+   if (mLocalBinding.getTransportType() == StunTuple::UDP &&
+      (e.value() == asio::error::connection_reset ||
+       e.value() == asio::error::connection_refused))
    {
+      DebugLog(<< "Flow::onReceiveFailure: socketDesc=" << socketDesc << " error=" << e.value() << "(" << e.message() << "), componentId=" << mComponentId);
       resip_assert(mTurnSocket.get());
       mTurnSocket->turnReceive();
+   }
+   else
+   {
+      WarningLog(<< "Flow::onReceiveFailure: socketDesc=" << socketDesc << " error=" << e.value() << "(" << e.message() << "), componentId=" << mComponentId);
    }
 }
 
@@ -950,6 +955,7 @@ Flow::createDtlsSocketServer(const StunTuple& endpoint)
 
 /* ====================================================================
 
+ Copyright (c) 2022, SIP Spectrum, Inc. http://sipspectrum.com
  Copyright (c) 2007-2008, Plantronics, Inc.
  All rights reserved.
 

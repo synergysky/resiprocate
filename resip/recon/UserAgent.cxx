@@ -11,9 +11,7 @@
 #include "UserAgentRegistration.hxx"
 #include "ReconSubsystem.hxx"
 
-#ifdef USE_SIPXTAPI
-#include "SipXConversationManager.hxx"
-#endif
+#include "MediaStackAdapter.hxx"
 
 #include "reflow/FlowManagerSubsystem.hxx"
 
@@ -40,8 +38,6 @@
 #endif
 #include <rutil/WinLeakCheck.hxx>
 #include <rutil/Random.hxx>
-
-#include <KurentoConversationManager.hxx>
 
 #include <utility>
 
@@ -204,8 +200,6 @@ UserAgent::process(int timeoutMs)
 void
 UserAgent::shutdown()
 {
-   // FIXME - Kurento client shutdown and join()
-
    UserAgentShutdownCmd* cmd = new UserAgentShutdownCmd(this);
    mDum.post(cmd);
 

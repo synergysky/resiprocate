@@ -117,20 +117,16 @@ int FlowManagerSipXSocket::read(char* buffer, int bufferLength,
     return iRC ;
 }
 
-
 int FlowManagerSipXSocket::read(char* buffer, int bufferLength, long waitMilliseconds)
 {        
    //cout << "read: bufferlen=" << bufferLength << ", waitMilliseconds=" << waitMilliseconds << "ms" << endl;
    resip_assert(mFlow);
    unsigned int len = bufferLength;
-   if(!mFlow->receive(buffer, len, waitMilliseconds))
-   {
-      return len;
-   }
-   else
+   if(mFlow->receive(buffer, len, waitMilliseconds))
    {
       return 0;
    }
+   return len;
 }
 
 int FlowManagerSipXSocket::write(const char* buffer, int bufferLength)
@@ -138,7 +134,7 @@ int FlowManagerSipXSocket::write(const char* buffer, int bufferLength)
     //cout << "write: bufferlen=" << bufferLength << endl;  // *********
     resip_assert(mFlow);
     mFlow->send((char *)buffer, bufferLength);
-    return 0;
+    return bufferLength;
 }
 
 int FlowManagerSipXSocket::write(const char* buffer, 
@@ -149,7 +145,7 @@ int FlowManagerSipXSocket::write(const char* buffer,
    //cout << "write: bufferlen=" << bufferLength << ", address=" << ipAddress << ", port=" << port << endl;
    resip_assert(mFlow);
    mFlow->sendTo(asio::ip::address::from_string(ipAddress), port, (char*)buffer, bufferLength);
-   return 0;
+   return bufferLength;
 }
 
 int FlowManagerSipXSocket::write(const char* buffer, int bufferLength, 
@@ -158,7 +154,7 @@ int FlowManagerSipXSocket::write(const char* buffer, int bufferLength,
     //cout << "write: bufferlen=" << bufferLength << ", waitMilliseconds=" << waitMilliseconds << endl;
     resip_assert(0);
     mFlow->send((char*)buffer, bufferLength);  // !SLG! We don't have a timed out send???  Not used by sipX anyway
-    return 0;
+    return bufferLength;
 }
 
 
