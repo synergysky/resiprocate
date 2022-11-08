@@ -318,49 +318,49 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          Mime type("application", "sdp");
          std::unique_ptr<SdpContents> _answer(new SdpContents(hfv, type));
 
-         SdpContents::Session::MediumContainer::iterator it = _answer->session().media().begin();
-         _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
-         bool audiobw = false;
-         bool videobw = false;
+      //    SdpContents::Session::MediumContainer::iterator it = _answer->session().media().begin();
+      //    _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
+      //    bool audiobw = false;
+      //    bool videobw = false;
 
-         for(;it != _answer->session().media().end(); it++)
-         {
-             SdpContents::Session::Medium& m = *it;
+      //    for(;it != _answer->session().media().end(); it++)
+      //    {
+      //        SdpContents::Session::Medium& m = *it;
 
-            if (m.name() == Data("video") && !videobw)
-            {
-                m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 1792000));
-                videobw = true;
-                auto codecs = m.codecs();
-                m.clearCodecs();
-                for (auto codec : codecs)
-                {
-                   if (codec.getName() == Data("H264"))
-                   {
-                      auto codecParameters = codec.parameters();
-                      string fmtpString = string(codecParameters.c_str());
-                      fmtpString = replaceParameter(fmtpString, "max-fs=", "3600");
-                      fmtpString = replaceParameter(fmtpString, "profile-level-id=", "14", 4);
-                      Codec c = Codec(Data(codec.getName()), codec.payloadType(), codec.getRate(), Data(fmtpString));
-                      m.addCodec(c);
-                   }
-                }
-                //m.addAttribute("max-recv-ssrc:* 1");
-                //m.addAttribute("rtcp-fb", "* nack pli");
-                //m.addAttribute("rtcp-fb", "* ccm fir");
-                //m.addAttribute("rtcp-fb", "* ccm tmmbr");
-            }
-            else if (m.name() == Data("audio") && !audiobw)
-            {
-                //m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 128000));
-                //m.addAttribute("max-recv-ssrc:* 1");
-                audiobw = true;
-            }
-            else
-            {
-                //m.setPort(0);
-            }
-        }
+      //       if (m.name() == Data("video") && !videobw)
+      //       {
+      //           m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 1792000));
+      //           videobw = true;
+      //           auto codecs = m.codecs();
+      //           m.clearCodecs();
+      //           for (auto codec : codecs)
+      //           {
+      //              if (codec.getName() == Data("H264"))
+      //              {
+      //                 auto codecParameters = codec.parameters();
+      //                 string fmtpString = string(codecParameters.c_str());
+      //                 fmtpString = replaceParameter(fmtpString, "max-fs=", "3600");
+      //                 fmtpString = replaceParameter(fmtpString, "profile-level-id=", "14", 4);
+      //                 Codec c = Codec(Data(codec.getName()), codec.payloadType(), codec.getRate(), Data(fmtpString));
+      //                 m.addCodec(c);
+      //              }
+      //           }
+      //           //m.addAttribute("max-recv-ssrc:* 1");
+      //           //m.addAttribute("rtcp-fb", "* nack pli");
+      //           //m.addAttribute("rtcp-fb", "* ccm fir");
+      //           //m.addAttribute("rtcp-fb", "* ccm tmmbr");
+      //       }
+      //       else if (m.name() == Data("audio") && !audiobw)
+      //       {
+      //           //m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 128000));
+      //           //m.addAttribute("max-recv-ssrc:* 1");
+      //           audiobw = true;
+      //       }
+      //       else
+      //       {
+      //           //m.setPort(0);
+      //       }
+      //   }
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
