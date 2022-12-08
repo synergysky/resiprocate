@@ -465,7 +465,7 @@ KurentoRemoteParticipant::adjustRTPStreams(bool sendingOffer)
     StackLog(<<"adjustRTPStreams");
 
     std::shared_ptr<SdpContents> localSdp = getLocalSdp();
-    resip_assert(localSdp);
+    //resip_assert(localSdp);
 
     std::shared_ptr<SdpContents> remoteSdp = getRemoteSdp();
     bool remoteSdpChanged = remoteSdp.get() != mLastRemoteSdp;
