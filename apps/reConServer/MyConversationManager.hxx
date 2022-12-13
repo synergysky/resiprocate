@@ -10,12 +10,14 @@
 #endif
 
 #include <rutil/Data.hxx>
+
 #include <resip/recon/ConversationManager.hxx>
 #include "reConServerConfig.hxx"
 #include <thread>
 #include <chrono>
 #include <memory>
 #include <mutex>
+
 namespace reconserver
 {
 

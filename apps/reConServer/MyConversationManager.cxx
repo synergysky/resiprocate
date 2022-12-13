@@ -1,8 +1,6 @@
 
 #ifdef HAVE_CONFIG_H
-
 #include "config.h"
-
 #endif
 
 #include <rutil/Log.hxx>
@@ -93,7 +91,8 @@ MyConversationManager::startup()
       addParticipant(initialConversation, createLocalParticipant());
         resip::Uri uri("tone:dialtone;duration=1000");
       createMediaResourceParticipant(initialConversation, uri);
-    } else
+    }
+    else
     {
         // If no local audio - just create a starter conversation
         // FIXME - do we really need an empty conversation on startup?
@@ -185,8 +184,7 @@ MyConversationManager::onDtmfEvent(ParticipantHandle partHandle, int dtmf, int d
 }
 
 void
-MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage &msg, bool autoAnswer,
-                                             ConversationProfile &conversationProfile)
+MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const SipMessage &msg, bool autoAnswer, ConversationProfile &conversationProfile)
 {
     InfoLog(<< "onIncomingParticipant: handle=" << partHandle << "auto=" << autoAnswer << " msg=" << msg.brief());
     if (mAutoAnswerEnabled)
@@ -217,8 +215,8 @@ MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const
             }
             addParticipant(convHandle, partHandle);
             answerParticipant(partHandle);
-
-        } else
+        }
+        else
         {
             InfoLog(<<"found Conversation for room: " << room);
             addParticipant(it->second, partHandle);
@@ -303,8 +301,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
                                // Give time to ensure both endpoints are connected properly
                                //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-                               answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]
-                                                         {
+                               answeredEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                                                              DebugLog(<<"SKYDEBUG: Connecting WebRTC");
                                                              _p->requestKeyframeFromPeer();
                                                              krp->requestKeyframeFromPeer();
@@ -321,8 +318,7 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
     for (; it != mRooms.end(); it++)
     {
         Conversation *conversation = getConversation(it->second);
-        KurentoRemoteParticipant *_p = dynamic_cast<KurentoRemoteParticipant *>(conversation->getParticipant(
-                partHandle));
+        KurentoRemoteParticipant *_p = dynamic_cast<KurentoRemoteParticipant *>(conversation->getParticipant(partHandle));
         if (_p)
         {
             DebugLog(<<"found participant in room " << it->first);
@@ -363,7 +359,8 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
                                                                      });
 
                                           });
-            } else
+            }
+            else
             {
                 myEndpoint->disconnect([this, krp, myEndpoint]
                                        {
@@ -384,8 +381,7 @@ MyConversationManager::onParticipantDestroyedKurento(ParticipantHandle partHandl
 }
 
 void
-MyConversationManager::onRequestOutgoingParticipant(ParticipantHandle partHandle, const SipMessage &msg,
-                                                    ConversationProfile &conversationProfile)
+MyConversationManager::onRequestOutgoingParticipant(ParticipantHandle partHandle, const SipMessage &msg, ConversationProfile &conversationProfile)
 {
     InfoLog(<< "onRequestOutgoingParticipant: handle=" << partHandle << " msg=" << msg.brief());
     /*

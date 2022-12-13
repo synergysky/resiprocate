@@ -565,7 +565,6 @@ WebRtcEndpoint::addOnIceGatheringDoneListener(std::shared_ptr<EventListener> l, 
    addListener(OnIceGatheringDoneEvent::EVENT_NAME, l, c);
 }
 
-
 /* ====================================================================
 
  Copyright (c) 2021, Software Freedom Institute https://softwarefreedom.institute

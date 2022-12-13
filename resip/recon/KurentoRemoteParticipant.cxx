@@ -33,10 +33,7 @@
 #include <vector>
 #include <sstream>
 #include <map>
-
 #include <utility>
-
-#
 
 using namespace recon;
 using namespace resip;
@@ -367,10 +364,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          c(true, std::move(_answer));
       };
 
-     
-
-      kurento::ContinuationVoid cConnected = [this, offerMangled, offerMangledStr, isWebRTC, elEventDebug, endpointExists, c, cOnAnswerReady]
-      {
+      kurento::ContinuationVoid cConnected = [this, offerMangled, offerMangledStr, isWebRTC, elEventDebug, endpointExists, c, cOnAnswerReady]{
          if(endpointExists && mReuseSdpAnswer)
          {
             // FIXME - Kurento should handle hold/resume
@@ -382,9 +376,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             cOnAnswerReady(*answerStr);
             return;
          }
-         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer)
-         {
-
+         mEndpoint->processOffer([this, offerMangled, isWebRTC, elEventDebug, c, cOnAnswerReady](const std::string& answer){
             if(isWebRTC)
             {
                std::shared_ptr<kurento::WebRtcEndpoint> webRtc = std::static_pointer_cast<kurento::WebRtcEndpoint>(mEndpoint);
@@ -405,7 +397,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
             }
             else
             {
-
                cOnAnswerReady(answer);
             }
          }, *offerMangledStr); // processOffer

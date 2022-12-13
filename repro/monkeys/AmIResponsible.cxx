@@ -149,7 +149,6 @@ AmIResponsible::process(RequestContext& context)
              context.getResponseContext().addTarget(std::move(target));
 
              InfoLog (<< "Sending to requri: " << uri);
-
              // skip the rest of the monkeys
              return Processor::SkipThisChain;
          }

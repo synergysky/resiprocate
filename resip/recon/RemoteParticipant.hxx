@@ -207,6 +207,7 @@ private:
    };
    PendingRequest mPendingRequest;
    std::unique_ptr<resip::SdpContents> mPendingOffer;
+
 protected:
    std::shared_ptr<resip::SdpContents> mLocalSdp;
 private:
