@@ -239,16 +239,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    AsyncBool valid = False;
 
    std::shared_ptr<SdpContents> offerMangled = std::make_shared<SdpContents>(offer);
-   SdpContents::Session::MediumContainer::iterator it = offerMangled->session().media().begin();
-   /*if(offerMangled->session().media().size() > 2)
-   {
-       std::advance(it, 2);
-       for(;it != offerMangled->session().media().end(); it++)
-       {
-            SdpContents::Session::Medium& m = *it;
-            m.setPort(0);
-       }
-   }*/
 
    try
    {
@@ -314,50 +304,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          HeaderFieldValue hfv(answer.data(), answer.size());
          Mime type("application", "sdp");
          std::unique_ptr<SdpContents> _answer(new SdpContents(hfv, type));
-
-      //    SdpContents::Session::MediumContainer::iterator it = _answer->session().media().begin();
-      //    _answer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
-      //    bool audiobw = false;
-      //    bool videobw = false;
-
-      //    for(;it != _answer->session().media().end(); it++)
-      //    {
-      //        SdpContents::Session::Medium& m = *it;
-
-      //       if (m.name() == Data("video") && !videobw)
-      //       {
-      //           m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 1792000));
-      //           videobw = true;
-      //           auto codecs = m.codecs();
-      //           m.clearCodecs();
-      //           for (auto codec : codecs)
-      //           {
-      //              if (codec.getName() == Data("H264"))
-      //              {
-      //                 auto codecParameters = codec.parameters();
-      //                 string fmtpString = string(codecParameters.c_str());
-      //                 fmtpString = replaceParameter(fmtpString, "max-fs=", "3600");
-      //                 fmtpString = replaceParameter(fmtpString, "profile-level-id=", "14", 4);
-      //                 Codec c = Codec(Data(codec.getName()), codec.payloadType(), codec.getRate(), Data(fmtpString));
-      //                 m.addCodec(c);
-      //              }
-      //           }
-      //           //m.addAttribute("max-recv-ssrc:* 1");
-      //           //m.addAttribute("rtcp-fb", "* nack pli");
-      //           //m.addAttribute("rtcp-fb", "* ccm fir");
-      //           //m.addAttribute("rtcp-fb", "* ccm tmmbr");
-      //       }
-      //       else if (m.name() == Data("audio") && !audiobw)
-      //       {
-      //           //m.setBandwidth(SdpContents::Session::Bandwidth("TIAS", 128000));
-      //           //m.addAttribute("max-recv-ssrc:* 1");
-      //           audiobw = true;
-      //       }
-      //       else
-      //       {
-      //           //m.setPort(0);
-      //       }
-      //   }
          _answer->session().transformLocalHold(isHolding());
          setLocalSdp(*_answer);
          setRemoteSdp(*offerMangled);
@@ -392,7 +338,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
 
                webRtc->gatherCandidates([]{
                   // FIXME - handle the case where it fails
-                  // on success, we continue from the IceGatheringDone event handle
+                  // on success, we continue from the IceGatheringDone event handler
                }); // gatherCandidates
             }
             else
@@ -430,23 +376,6 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    }
 
    return valid;
-}
-
-string KurentoRemoteParticipant::replaceParameter(string fmtpString, string parameterName, string replaceValue, int indexOffset)
-{
-   int index = fmtpString.find(parameterName);
-   if(index == string::npos)
-   {
-       return fmtpString;
-   }
-   auto value = fmtpString.substr(index + 1);
-   int endIndex = value.find_first_of(';');
-   if(endIndex == string::npos)
-   {
-       return fmtpString;
-   }
-   indexOffset += parameterName.length();
-   return fmtpString.replace(index + indexOffset, endIndex - indexOffset + 1, replaceValue);
 }
 
 void

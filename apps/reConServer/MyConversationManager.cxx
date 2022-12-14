@@ -258,7 +258,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
     }
     Conversation *conversation = getConversation(it->second);
     unsigned int numRemoteParticipants = conversation->getNumRemoteParticipants();
-    auto _p = dynamic_cast<KurentoRemoteParticipant *>(conversation->getParticipant(partHandle));
+    KurentoRemoteParticipant *_p = dynamic_cast<KurentoRemoteParticipant*>(conversation->getParticipant(partHandle));
     std::shared_ptr<kurento::BaseRtpEndpoint> answeredEndpoint = _p->getEndpoint();
     if (numRemoteParticipants < 2)
     {
@@ -282,8 +282,7 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
     // Find the other Participant / endpoint
 
     Conversation::ParticipantMap &m = conversation->getParticipants();
-    //KurentoRemoteParticipant* krp = 0; // FIXME - better to use shared_ptr
-    KurentoRemoteParticipant* krp = 0;
+    KurentoRemoteParticipant* krp = 0; // FIXME - better to use shared_ptr
     Conversation::ParticipantMap::iterator _it = m.begin();
     for (; _it != m.end() && krp == 0; _it++)
     {
@@ -295,8 +294,8 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
     }
     resip_assert(krp);
     std::shared_ptr<kurento::BaseRtpEndpoint> otherEndpoint = krp->getEndpoint();
-    otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]
-                           {
+
+    otherEndpoint->connect([this, _p, answeredEndpoint, otherEndpoint, krp]{
                                DebugLog(<<"SKYDEBUG: Connecting SIP");
                                // Give time to ensure both endpoints are connected properly
                                //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
@@ -305,7 +304,6 @@ MyConversationManager::onIncomingKurento(ParticipantHandle partHandle, const Sip
                                                              DebugLog(<<"SKYDEBUG: Connecting WebRTC");
                                                              _p->requestKeyframeFromPeer();
                                                              krp->requestKeyframeFromPeer();
-
                                                          }, *otherEndpoint);
                            }, *answeredEndpoint);
 }
