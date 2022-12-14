@@ -113,47 +113,10 @@ MyConversationManager::startup()
     }
 }
 
-ConversationHandle
-MyConversationManager::createConversation(AutoHoldMode autoHoldMode)
-{
-    ConversationHandle convHandle = ConversationManager::createConversation(autoHoldMode);
-    mConversationHandles.push_back(convHandle);
-    return convHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createRemoteParticipant(ConversationHandle convHandle, const NameAddr &destination,
-                                               ParticipantForkSelectMode forkSelectMode,
-                                               const std::shared_ptr<ConversationProfile> &conversationProfile,
-                                               const std::multimap<resip::Data, resip::Data> &extraHeaders)
-{
-    ParticipantHandle partHandle = ConversationManager::createRemoteParticipant(convHandle, destination, forkSelectMode,
-                                                                                conversationProfile, extraHeaders);
-    mRemoteParticipantHandles.push_back(partHandle);
-    return partHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createMediaResourceParticipant(ConversationHandle convHandle, const Uri &mediaUrl)
-{
-    ParticipantHandle partHandle = ConversationManager::createMediaResourceParticipant(convHandle, mediaUrl);
-    mMediaParticipantHandles.push_back(partHandle);
-    return partHandle;
-}
-
-ParticipantHandle
-MyConversationManager::createLocalParticipant()
-{
-    ParticipantHandle partHandle = ConversationManager::createLocalParticipant();
-    mLocalParticipantHandles.push_back(partHandle);
-    return partHandle;
-}
-
 void
 MyConversationManager::onConversationDestroyed(ConversationHandle convHandle)
 {
     InfoLog(<< "onConversationDestroyed: handle=" << convHandle);
-    mConversationHandles.remove(convHandle);
 }
 
 void
