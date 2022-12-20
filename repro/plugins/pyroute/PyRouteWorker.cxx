@@ -119,7 +119,6 @@ PyRouteWorker::process(resip::ApplicationMessage* msg)
 
    // arg 3: a subset of the SIP headers
    Py::Dict headers;
-   headers["DisplayName"] = Py::String(message.header(resip::h_From).displayName().c_str());
    headers["From"] = Py::String(message.header(resip::h_From).uri().toString().c_str());
    headers["To"] = Py::String(message.header(resip::h_To).uri().toString().c_str());
    const resip::HeaderFieldValue cid_hfv = message.header(resip::h_CallID).getHeaderField();
