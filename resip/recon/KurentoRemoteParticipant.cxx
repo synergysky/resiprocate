@@ -255,7 +255,7 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
          // Tested with Kurento and Cisco EX90
          // https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-comedia-05
          // https://datatracker.ietf.org/doc/html/rfc4145
-         // offerMangled->session().transformCOMedia("active", "direction");
+         offerMangled->session().transformCOMedia("active", "direction");
       }
 
       std::ostringstream offerMangledBuf;
