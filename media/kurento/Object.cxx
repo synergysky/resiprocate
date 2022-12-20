@@ -74,9 +74,7 @@ Object::subscribe(const std::string& eventName, ContinuationVoid c)
 void
 Object::release(ContinuationVoid c)
 {
-    json::Object params;
-    ContinuationInternal ci = std::bind(&Object::onVoidSuccess, this, c, _1);
-    std::string reqId = makeRpcCall("release", params, ci);
+   invokeVoidMethod("release", c);
 }
 
 void
