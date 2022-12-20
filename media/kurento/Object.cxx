@@ -35,7 +35,6 @@ Object::~Object()
 std::string
 Object::makeRpcCallStatic(const std::string& methodName, const json::Object& params, ContinuationInternal c)
 {
-   WarningLog(<<"SynergySKY: makeRpcCallStatic " << methodName );
    std::string reqId = mConnection->sendRequest(
             KurentoResponseHandler::shared_from_this(),
             methodName, params);
@@ -112,7 +111,6 @@ Object::sendNotifications(const std::string& eventType, const json::Object& mess
 void
 Object::addListener(const std::string& eventName, std::shared_ptr<EventListener> l, ContinuationVoid c)
 {
-    DebugLog(<<"addListener requested for: " << eventName);
    //resip_assert(std::is_base_of<Event,T>::value);  // FIXME uncomment
 
    //const std::string& eventName = T::EVENT_NAME;
