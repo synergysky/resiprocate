@@ -239,6 +239,12 @@ KurentoRemoteParticipant::buildSdpAnswer(const SdpContents& offer, ContinuationS
    AsyncBool valid = False;
 
    std::shared_ptr<SdpContents> offerMangled = std::make_shared<SdpContents>(offer);
+   while(mRemoveExtraMediaDescriptors && offerMangled->session().media().size() > 2)
+   {
+      // FIXME hack to remove BFCP
+      DebugLog(<<"more than 2 media descriptors, removing the last");
+      offerMangled->session().media().pop_back();
+   }
 
    try
    {
