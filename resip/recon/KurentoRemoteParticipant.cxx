@@ -197,18 +197,10 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
 
         if(endpointExists)
         {
-            if(!mReuseSdpAnswer)
-            {
-                cConnected();
-            }
-            else
-            {
-                std::ostringstream offerMangledBuf;
-                getLocalSdp()->session().transformLocalHold(isHolding());
-                offerMangledBuf << *getLocalSdp();
-                std::shared_ptr<std::string> offerMangledStr = std::make_shared<std::string>(offerMangledBuf.str());
-                cOnOfferReady(*offerMangledStr);
-            }
+           std::ostringstream offerMangledBuf;
+           offerMangledBuf << *getLocalSdp();
+           std::shared_ptr<std::string> offerMangledStr = std::make_shared<std::string>(offerMangledBuf.str());
+           cOnOfferReady(*offerMangledStr);
         }
         else{
             mEndpoint->create([this, cConnected]{
@@ -216,11 +208,6 @@ KurentoRemoteParticipant::buildSdpOffer(bool holdSdp, ContinuationSdpReady c)
                 //       waitingMode() as that method knows whether
                 //       to do loopback, a PlayerEndpoint or something else
                 //mEndpoint->connect(cConnected, *mEndpoint); // connect
-
-                // FIXME event listeners
-                // FIXME mplayer
-                // FIXME passthrough
-
                 cConnected();
             }); // create
         }
@@ -395,42 +382,32 @@ KurentoRemoteParticipant::adjustRTPStreams(bool sendingOffer)
     std::shared_ptr<SdpContents> remoteSdp = getRemoteSdp();
     bool remoteSdpChanged = remoteSdp.get() != mLastRemoteSdp;
     mLastRemoteSdp = remoteSdp.get();
-    if(remoteSdp)
+    if(remoteSdp && remoteSdpChanged && mWaitingAnswer)
     {
-        Data remoteDirection = remoteSdp->session().getDirection();
-        if(remoteDirection == "inactive" || remoteDirection == "sendonly")
-        {
-            setRemoteHold(true);
-        }
-        else
-        {
-            setRemoteHold(false);
-        }
-        if(remoteSdpChanged && mWaitingAnswer)
-        {
-            // FIXME - maybe this should not be in adjustRTPStreams
-            DebugLog(<<"remoteSdp has changed, sending to Kurento");
-            mWaitingAnswer = false;
-            std::ostringstream answerBuf;
-
-            answerBuf << *remoteSdp;
-            DebugLog(<<answerBuf.str());
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-            mEndpoint->processOffer([this](const std::string updatedOffer){
-                // FIXME - use updatedOffer
-                WarningLog(<<"Kurento has processed the peer's SDP answer");
-                StackLog(<<"updatedOffer FROM Kurento: " << updatedOffer);
-                HeaderFieldValue hfv(updatedOffer.data(), updatedOffer.size());
-                Mime type("application", "sdp");
-                std::unique_ptr<SdpContents> _updatedOffer(new SdpContents(hfv, type));
-                _updatedOffer->session().transformLocalHold(isHolding());
-                _updatedOffer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
-                setLocalSdp(*_updatedOffer);
-                mInviteSessionHandle->provideOffer(*mLocalSdp);
-                //c(true, std::move(_updatedOffer));
-            }, answerBuf.str());
-        }
+        DebugLog(<<"remoteSdp has changed, sending to Kurento");
+        mWaitingAnswer = false;
+        std::ostringstream answerBuf;
+        answerBuf << *remoteSdp;
+        DebugLog(<<answerBuf.str());
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        mEndpoint->processOffer([this](const std::string updatedOffer){
+           // FIXME - use updatedOffer
+           WarningLog(<<"Kurento has processed the peer's SDP answer");
+           StackLog(<<"updatedOffer FROM Kurento: " << updatedOffer);
+           HeaderFieldValue hfv(updatedOffer.data(), updatedOffer.size());
+           Mime type("application", "sdp");
+           std::unique_ptr<SdpContents> _updatedOffer(new SdpContents(hfv, type));
+           _updatedOffer->session().transformLocalHold(isHolding());
+           _updatedOffer->session().addBandwidth(SdpContents::Session::Bandwidth("AS", 2048));
+           setLocalSdp(*_updatedOffer);
+           mInviteSessionHandle->provideOffer(*mLocalSdp);
+           //c(true, std::move(_updatedOffer));
+        }, answerBuf.str());
     }
+
+   // FIXME Kurento - sometimes true
+   setRemoteHold(false);
+
 }
 
 void
