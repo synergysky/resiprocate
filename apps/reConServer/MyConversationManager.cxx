@@ -22,8 +22,6 @@
 
 #define RESIPROCATE_SUBSYSTEM AppSubsystem::RECONSERVER
 
-#include <chrono>
-#include <thread>
 using namespace std;
 using namespace resip;
 using namespace recon;
@@ -46,39 +44,6 @@ MyConversationManager::MyConversationManager(const ReConServerConfig& config, co
 #endif
 #endif
    setMediaStackAdapter(mediaStackAdapter);
-    this->FastUpdateRequestThread = std::make_shared<std::thread>([this]
-                                                                  {
-                                                                      this->FastUpdateRequestWorkerLoop();
-                                                                  });
-}
-
-void
-MyConversationManager::FastUpdateRequestWorkerLoop()
-{
-    // DEBUG; for test we are checking all the time, and pushing FUR aggressively
-    while (!this->isShuttingDown())
-    {
-        this->RemoteParticipantFURVectorMutex.lock();
-        for (auto &n: this->RemoteParticipantFURVector)
-        {
-            if (n->IsFurDue()) // Added true to always trigger to spam
-            {
-                RemoteParticipant *remoteParticipant = dynamic_cast<RemoteParticipant *>(this->getParticipant(
-                        n->Handler));
-                if (remoteParticipant)
-                {
-                    remoteParticipant->requestKeyframeFromPeer();
-                } else
-                {
-                    WarningLog(<< "FastUpdateRequestWorkerLoop: invalid remote participant handle.");
-                }
-                //sendFastUpdateRequest(n->Handler);
-                //std::cout << "executing sendFastUpdateRequest( " << n->Handler << " );" << std::endl;
-            }
-        }
-        this->RemoteParticipantFURVectorMutex.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // WAS 1000
-    }
 }
 
 void
@@ -123,21 +88,6 @@ void
 MyConversationManager::onParticipantDestroyed(ParticipantHandle partHandle)
 {
     InfoLog(<< "onParticipantDestroyed: handle=" << partHandle);
-
-    this->RemoteParticipantFURVectorMutex.lock();
-    std::vector<std::shared_ptr<RemoteParticipantFurTrackerStruct>>::iterator it;
-    bool found = false;
-    for (it = RemoteParticipantFURVector.begin(); it != RemoteParticipantFURVector.end(); it++)
-    {
-        if ((*it)->Handler == partHandle)
-        {
-            found = true;
-            break;
-        }
-    }
-    if (found)
-        RemoteParticipantFURVector.erase(it);
-    this->RemoteParticipantFURVectorMutex.unlock();
 }
 
 void
@@ -186,27 +136,6 @@ MyConversationManager::onIncomingParticipant(ParticipantHandle partHandle, const
             answerParticipant(partHandle);
         }
     }
-    std::shared_ptr<RemoteParticipantFurTrackerStruct> newremote = std::make_shared<RemoteParticipantFurTrackerStruct>(
-            partHandle);
-    this->RemoteParticipantFURVectorMutex.lock();
-
-    // Skip WebRTC
-    RemoteParticipant *remoteParticipant = dynamic_cast<RemoteParticipant *>(this->getParticipant(partHandle));
-    if (remoteParticipant)
-    {
-        if (!remoteParticipant->getInviteSessionHandle()->getProposedRemoteSdp().session().isWebRTC())
-        {
-            this->RemoteParticipantFURVector.push_back(newremote);
-        }
-    } else
-    {
-        WarningLog(<<"Problem adding participant handler to RemoteParticipantFURVector: " << newremote);
-    }
-
-    // ignore if webrtc
-
-
-    this->RemoteParticipantFURVectorMutex.unlock();
 }
 
 void
