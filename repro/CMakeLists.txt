@@ -1,4 +1,4 @@
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/reproInfo.hxx" [=[#include "config.h"]=])
+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/reproInfo.hxx" [=[#include "config.h"]=])
 
 add_executable(repro-bin
    repro.cxx
