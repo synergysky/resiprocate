@@ -48,10 +48,10 @@ MyConversationManager::MyConversationManager(const ReConServerConfig& config, co
 #endif
 #endif
    setMediaStackAdapter(mediaStackAdapter);
-    this->FastUpdateRequestThread = std::make_shared<std::thread>([this]
-                                                                  {
-                                                                      this->FastUpdateRequestWorkerLoop();
-                                                                  });
+    //this->FastUpdateRequestThread = std::make_shared<std::thread>([this]
+    //                                                              {
+    //                                                                 this->FastUpdateRequestWorkerLoop();
+    //                                                              });
 }
 
 void
