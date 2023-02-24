@@ -177,7 +177,7 @@ KurentoRemoteParticipant::initEndpointIfRequired(bool isWebRTC)
    }
 
    // start the periodic timer requesting keyframes from the peer
-   mConversationManager.requestKeyframeFromPeerRecurring(getParticipantHandle(), std::chrono::seconds(1));
+   //mConversationManager.requestKeyframeFromPeerRecurring(getParticipantHandle(), std::chrono::seconds(1));
 
    std::shared_ptr<resip::ConfigParse> cfg = mConversationManager.getConfig();
    if(cfg)
@@ -251,7 +251,7 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
    std::shared_ptr<kurento::EventContinuation> elEventKeyframeRequired =
          std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<kurento::Event> event){
       DebugLog(<<"received event: " << *event);
-      requestKeyframeFromPeer();
+      // requestKeyframeFromPeer();
    });
 
    auto cConnectedInternal = [this, cConnected, elEventDebug]
@@ -543,12 +543,12 @@ KurentoRemoteParticipant::adjustRTPStreams(bool sendingOffer)
             //c(true, std::move(_updatedOffer));
          }, answerBuf.str());
       }
-      requestKeyframeFromPeerTimeout(true);
-      for(int i = 1000; i <= 5000; i+=1000)
-      {
-         std::chrono::milliseconds _i = std::chrono::milliseconds(i);
-         mConversationManager.requestKeyframe(mHandle, _i);
-      }
+      // requestKeyframeFromPeerTimeout(true);
+      // for(int i = 1000; i <= 5000; i+=1000)
+      // {
+      //    std::chrono::milliseconds _i = std::chrono::milliseconds(i);
+      //    mConversationManager.requestKeyframe(mHandle, _i);
+      // }
    }
 }
 
@@ -587,10 +587,10 @@ KurentoRemoteParticipant::waitingMode()
       else
       {
          mEndpoint->connect([this]{
-            requestKeyframeFromPeer();
+            // requestKeyframeFromPeer();
          }, *mPassThrough); // FIXME Kurento async
       }
-      requestKeyframeFromPeer();
+      // requestKeyframeFromPeer();
    }, *mEndpoint);
 }
 
@@ -676,7 +676,7 @@ KurentoRemoteParticipant::requestKeyframe()
 {
    if(mEndpoint->valid())
    {
-      mEndpoint->sendPictureFastUpdate([]{});
+      // mEndpoint->sendPictureFastUpdate([]{});
    }
    else
    {
