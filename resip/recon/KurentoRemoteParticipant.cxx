@@ -63,7 +63,7 @@ KurentoRemoteParticipant::KurentoRemoteParticipant(ParticipantHandle partHandle,
   mRemoveExtraMediaDescriptors(false),
   mSipRtpEndpoint(true),
   mReuseSdpAnswer(false),
-  mWSAcceptsKeyframeRequests(true),
+  mWSAcceptsKeyframeRequests(false),
   mLastRemoteSdp(0),
   mWaitingAnswer(false),
   mWebRTCOutgoing(getDialogSet().getConversationProfile()->mediaEndpointMode() == ConversationProfile::WebRTC)
@@ -82,7 +82,7 @@ KurentoRemoteParticipant::KurentoRemoteParticipant(ConversationManager& conversa
   mRemoveExtraMediaDescriptors(false),
   mSipRtpEndpoint(true),
   mReuseSdpAnswer(false),
-  mWSAcceptsKeyframeRequests(true),
+  mWSAcceptsKeyframeRequests(false),
   mLastRemoteSdp(0),
   mWaitingAnswer(false),
   mWebRTCOutgoing(getDialogSet().getConversationProfile()->mediaEndpointMode() == ConversationProfile::WebRTC)
