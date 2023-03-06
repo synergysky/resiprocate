@@ -251,7 +251,14 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
    std::shared_ptr<kurento::EventContinuation> elEventKeyframeRequired =
          std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<kurento::Event> event){
       DebugLog(<<"received event: " << *event);
+
       // requestKeyframeFromPeer();
+   });
+
+   std::shared_ptr<kurento::EventContinuation> elEventSendReinvite = 
+         std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<krento::Event> event){
+      DebugLog(<<"received event: " << *event);
+      
    });
 
    auto cConnectedInternal = [this, cConnected, elEventDebug]
@@ -272,26 +279,28 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
                   mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [=](){
                      mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [=](){
                         mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [=](){
-                           if(mPlayer)
-                           {
-                              mPlayer->create([this, cConnectedInternal]{
-                                 mPlayer->play([this, cConnectedInternal]{
-                                    mPlayer->connect(cConnectedInternal, *mEndpoint);
+                           mEndpoint->addSendReinviteListener(elEventSendReinvite, [=](){                
+                              if(mPlayer)
+                              {
+                                 mPlayer->create([this, cConnectedInternal]{
+                                    mPlayer->play([this, cConnectedInternal]{
+                                       mPlayer->connect(cConnectedInternal, *mEndpoint);
+                                    });
                                  });
-                              });
-                           }
-                           else if(mPassThrough)
-                           {
-                              mPassThrough->create([this, cConnectedInternal]{
-                                 mEndpoint->connect([this, cConnectedInternal]{
-                                    mPassThrough->connect(cConnectedInternal, *mEndpoint);
-                                 }, *mPassThrough);
-                              });
-                           }
-                           else
-                           {
-                              cConnectedInternal();
-                           }
+                              }
+                              else if(mPassThrough)
+                              {
+                                 mPassThrough->create([this, cConnectedInternal]{
+                                    mEndpoint->connect([this, cConnectedInternal]{
+                                       mPassThrough->connect(cConnectedInternal, *mEndpoint);
+                                    }, *mPassThrough);
+                                 });
+                              }
+                              else
+                              {
+                                 cConnectedInternal();
+                              }
+                           });
                         }); // addKeyframeRequiredListener
                      });
                   });
