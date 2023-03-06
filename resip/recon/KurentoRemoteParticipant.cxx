@@ -255,11 +255,11 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
       // requestKeyframeFromPeer();
    });
 
-   std::shared_ptr<kurento::EventContinuation> elEventSendReinvite = 
-         std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<krento::Event> event){
-      DebugLog(<<"received event: " << *event);
-      
-   });
+   // std::shared_ptr<kurento::EventContinuation> elEventSendReinvite = 
+   //       std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<krento::Event> event){
+   //    DebugLog(<<"received event: " << *event);
+
+   // });
 
    auto cConnectedInternal = [this, cConnected, elEventDebug]
    {
@@ -278,8 +278,7 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
                mEndpoint->addMediaTranscodingStateChangeListener(elEventDebug, [=](){
                   mEndpoint->addMediaFlowInStateChangeListener(elEventDebug, [=](){
                      mEndpoint->addMediaFlowOutStateChangeListener(elEventDebug, [=](){
-                        mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [=](){
-                           mEndpoint->addSendReinviteListener(elEventSendReinvite, [=](){                
+                        mEndpoint->addKeyframeRequiredListener(elEventKeyframeRequired, [=](){             
                               if(mPlayer)
                               {
                                  mPlayer->create([this, cConnectedInternal]{
@@ -300,7 +299,6 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
                               {
                                  cConnectedInternal();
                               }
-                           });
                         }); // addKeyframeRequiredListener
                      });
                   });
