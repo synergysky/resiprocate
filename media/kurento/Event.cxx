@@ -15,6 +15,8 @@ const std::string OnMediaFlowOutStateChangeEvent::EVENT_NAME = "MediaFlowOutStat
 const std::string OnKeyframeRequiredEvent::EVENT_NAME = "KeyframeRequired";
 const std::string OnErrorEvent::EVENT_NAME = "Error";
 const std::string OnDataChannelOpenEvent::EVENT_NAME = "DataChannelOpen";
+const std::string OnSendReinviteEvent::EVENT_NAME = "SendReinvite";
+
 
 Event::Event(const std::string& name)
    : mName(name)
@@ -50,6 +52,8 @@ Event::make_event(const std::string& eventType, const json::Object& message)
       event = new OnErrorEvent(message);
    } else if(eventType == OnDataChannelOpenEvent::EVENT_NAME) {
        event = new OnDataChannelOpenEvent(message);
+   } else if(eventType == OnSendReinviteEvent::EVENT_NAME) {
+      event = new OnSendReinviteEvent(message);
    }
    return std::shared_ptr<Event>(event);
 }
@@ -144,6 +148,14 @@ OnDataChannelOpenEvent::OnDataChannelOpenEvent(const json::Object &message)
 {}
 
 OnDataChannelOpenEvent::~OnDataChannelOpenEvent()
+{}
+
+OnSendReinviteEvent::OnSendReinviteEvent(const json::Object &message)
+   : Event(EVENT_NAME)
+{
+}
+
+OnSendReinviteEvent::~OnSendReinviteEvent()
 {}
 
 /* ====================================================================

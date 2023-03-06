@@ -186,6 +186,7 @@ class BaseRtpEndpoint : public Endpoint
       void sendPictureFastUpdate(ContinuationVoid c);
 
       void addKeyframeRequiredListener(std::shared_ptr<EventListener> l, ContinuationVoid c);
+      void addSendReinviteListener(std::shares_ptr<EventListener> l, ContinuationVoid c);
 };
 
 class RtpEndpoint : public BaseRtpEndpoint

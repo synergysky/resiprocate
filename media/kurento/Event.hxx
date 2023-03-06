@@ -132,6 +132,14 @@ public:
     virtual ~OnDataChannelOpenEvent();
 };
 
+class OnSendReinviteEvent : public Event
+{
+   public:
+      static const std::string EVENT_NAME;
+   OnSendReinviteEvent(const json::Object& message);
+   virtual ~OnSendReinviteEvent();
+};
+
 class EventListener
 {
    public:

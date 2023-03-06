@@ -490,6 +490,13 @@ BaseRtpEndpoint::addKeyframeRequiredListener(std::shared_ptr<EventListener> l, C
    addListener(OnKeyframeRequiredEvent::EVENT_NAME, l, c);
 }
 
+void
+BaseRtpEndpoint::addSendReinviteListener(std::shared_ptr<EventListener> l, ContinuationVoid c)
+{
+   addListener(OnSendReinviteEvent::EVENT_NAME, l, c);
+}
+
+
 RtpEndpoint::RtpEndpoint(std::shared_ptr<MediaPipeline> mediaPipeline)
    : BaseRtpEndpoint("RtpEndpoint", mediaPipeline)
 {
