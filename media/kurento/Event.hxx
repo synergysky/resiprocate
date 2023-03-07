@@ -138,6 +138,11 @@ class OnSendReinviteEvent : public Event
       static const std::string EVENT_NAME;
    OnSendReinviteEvent(const json::Object& message);
    virtual ~OnSendReinviteEvent();
+
+   const std::string& getOffer() const { return mOffer; };
+
+   private:
+      std::string mOffer;
 };
 
 class EventListener

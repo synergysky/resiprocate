@@ -153,6 +153,9 @@ OnDataChannelOpenEvent::~OnDataChannelOpenEvent()
 OnSendReinviteEvent::OnSendReinviteEvent(const json::Object& message)
    : Event(EVENT_NAME)
 {
+   json::Object data = message["params"]["value"]["data"];
+   mOffer = json::String(candidate["ReInvite"]).Value();
+
 }
 
 OnSendReinviteEvent::~OnSendReinviteEvent()

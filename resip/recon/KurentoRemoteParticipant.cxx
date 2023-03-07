@@ -257,7 +257,20 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
    std::shared_ptr<kurento::EventContinuation> elEventSendReinvite = 
          std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<kurento::Event> event){
       DebugLog(<<"received event: " << *event);
-
+      std::shared_ptr<kurento::OnSendReinviteEvent> _event = 
+         std::dynamic_pointer_cast<kurento::OnSendReinviteEvent>(event);
+      const std::string& newOffer = _event->getOffer();
+      HeaderFieldValue hfv(newOffer.data(), newOffer.size());
+      Mime type("application", "sdp");
+      std::shared_ptr<SdpContents> ReInviteOffer(new SdpContents(hfv, type));
+      if(getInviteSessionHandle().isValid())
+      {
+         getInviteSessionHandle()->provideOffer(*ReInviteOffer);
+      }
+      else
+      {
+         WarningLog(<<"handle no longer valid");
+      }
    });
 
    auto cConnectedInternal = [this, cConnected, elEventDebug]
