@@ -150,7 +150,7 @@ OnDataChannelOpenEvent::OnDataChannelOpenEvent(const json::Object &message)
 OnDataChannelOpenEvent::~OnDataChannelOpenEvent()
 {}
 
-OnSendReinviteEvent::OnSendReinviteEvent(const json::Object &message)
+OnSendReinviteEvent::OnSendReinviteEvent(const json::Object& message)
    : Event(EVENT_NAME)
 {
 }

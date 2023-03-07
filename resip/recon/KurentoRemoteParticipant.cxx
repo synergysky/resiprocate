@@ -255,7 +255,7 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
    });
 
    std::shared_ptr<kurento::EventContinuation> elEventSendReinvite = 
-         std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<krento::Event> event){
+         std::make_shared<kurento::EventContinuation>([this](std::shared_ptr<kurento::Event> event){
       DebugLog(<<"received event: " << *event);
 
    });
