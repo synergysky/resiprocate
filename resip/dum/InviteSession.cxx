@@ -429,6 +429,7 @@ InviteSession::provideOffer(const Contents& offer,
       case Connected:
       case WaitingToOffer:
       case UAS_WaitingToOffer:
+      case SentReinvite:
          transition(SentReinvite);
          mDialog.makeRequest(*mLastLocalSessionModification, INVITE);
          startStaleReInviteTimer();
