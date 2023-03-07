@@ -262,10 +262,11 @@ KurentoRemoteParticipant::createAndConnectElements(kurento::ContinuationVoid cCo
       const std::string& newOffer = _event->getOffer();
       HeaderFieldValue hfv(newOffer.data(), newOffer.size());
       Mime type("application", "sdp");
-      std::shared_ptr<SdpContents> ReInviteOffer(new SdpContents(hfv, type));
+      std::unique_ptr<SdpContents> ReInviteOffer(new SdpContents(hfv, type));
+      setLocalSdp(*ReInviteOffer);
       if(getInviteSessionHandle().isValid())
       {
-         getInviteSessionHandle()->provideOffer(*ReInviteOffer);
+         getInviteSessionHandle()->provideOffer(*getLocalSdp());
       }
       else
       {
